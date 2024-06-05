@@ -1,21 +1,19 @@
-use std::time::Instant;
 
 use axum::{
     debug_handler,
     Router,
     routing::get,
-    extract::State,
     response::Result
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{ToResponse, ToSchema};
 
 use crate::{
-    common::{approx_instant, Array},
-    db::AppState,
+    common::{Array},
+    db::db,
 };
 
-pub(crate) fn router() -> Router<AppState> {
+pub(crate) fn router() -> Router {
     Router::new()
         .route("/welcome", get(welcome))
         .route("/manager/users", get(users))
@@ -46,9 +44,10 @@ pub(crate) struct User {
     tag = "manager",
     responses((status = 200, body = [User]))
 )]
-pub(crate) async fn users(state: State<AppState>) -> Result<Array<User>> {
+pub(crate) async fn users() -> Result<Array<User>> {
+    let conn = db();
     let x = sqlx::query_as!(User, "select * from users")
-        .fetch_all(&state.db)
+        .fetch_all(conn)
         .await;
     Ok(x.unwrap().into())
 }

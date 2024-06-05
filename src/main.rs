@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::sync::Arc;
 
 use anyhow::Result as AnyResult;
 use axum::Router;
@@ -44,12 +43,11 @@ async fn main() -> AnyResult<()> {
 
     let args = Args::from_args_safe()?;
 
-    let state = db::init(&args.database_url).await?;
+    db::init(&args.database_url).await?;
 
     let app = Router::new()
         .merge(auth::router())
-        .merge(swagger())
-        .with_state(state);
+        .merge(swagger());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
