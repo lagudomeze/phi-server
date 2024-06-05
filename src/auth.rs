@@ -1,10 +1,10 @@
 use std::time::Instant;
 
-use axum::{debug_handler, Json, Router, routing::get};
+use axum::{debug_handler, Router, routing::get};
 use serde::{Deserialize, Serialize};
 use utoipa::{ToResponse, ToSchema};
 
-use crate::common::approx_instant;
+use crate::common::{approx_instant, Array};
 
 pub(crate) fn router() -> Router {
     Router::new()
@@ -39,7 +39,7 @@ pub(crate) struct User {
     tag = "manager",
     responses((status = 200, body = [User]))
 )]
-pub(crate) async fn users() -> Json<Vec<User>> {
+pub(crate) async fn users() -> Array<User> {
     todo!()
 }
 

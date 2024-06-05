@@ -2,21 +2,8 @@ use std::net::SocketAddr;
 
 use anyhow::Result as AnyResult;
 use axum::{
-    debug_handler,
-    extract::Path,
-    http::StatusCode,
-    Json,
-    response::{
-        IntoResponse,
-        Result
-    },
     Router,
-    routing::{
-        get, post
-    },
 };
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -27,7 +14,7 @@ mod material;
 mod common;
 
 #[utoipauto]
-#[derive(OpenApi)]
+#[derive(OpenApi, Debug)]
 #[openapi(
     tags(
         (name = "todo", description = "Todo management endpoints.")
@@ -42,6 +29,7 @@ fn swagger() -> SwaggerUi {
 
 #[tokio::main]
 async fn main() -> AnyResult<()> {
+    
 
     tracing_subscriber::fmt::init();
 
