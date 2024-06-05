@@ -18,15 +18,36 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tracing::info;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+use utoipauto::utoipauto;
+
+mod auth;
+mod material;
+mod common;
+
+#[utoipauto]
+#[derive(OpenApi)]
+#[openapi(
+    tags(
+        (name = "todo", description = "Todo management endpoints.")
+    ),
+)]
+struct ApiDoc;
+
+fn swagger() -> SwaggerUi {
+    SwaggerUi::new("/swagger-ui")
+        .url("/api-docs/openapi.json", ApiDoc::openapi())
+}
 
 #[tokio::main]
 async fn main() -> AnyResult<()> {
 
     tracing_subscriber::fmt::init();
+
     let app = Router::new()
-        .route("/", get(root))
-        .route("/hello/:name/:test", get(json_hello))
-        .route("/user", post(create_user));
+        .merge(auth::router())
+        .merge(swagger());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
@@ -53,49 +74,4 @@ async fn shutdown_signal() {
     tokio::select! {
         _ = ctrl_c => {},
     }
-}
-
-#[derive(Deserialize, Debug)]
-struct Info {
-    name: String,
-    test: String,
-}
-
-#[debug_handler]
-async fn json_hello(Path(info): Path<Info>) -> Result<Json<Value>> {
-    info!("haha {info:?}");
-    let Info { name, test } = info;
-
-    let message = format!("Hello {name} with {test}");
-
-    let value = json!({
-        "message":message
-    });
-    Ok(Json(value))
-}
-
-#[debug_handler]
-async fn root() -> &'static str {
-    "Hello, World!"
-}
-
-#[derive(Deserialize)]
-struct CreateUser {
-    username: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Eq, Hash, PartialEq)]
-struct User {
-    id: u64,
-    username: String,
-}
-
-#[debug_handler]
-async fn create_user(Json(payload): Json<CreateUser>) -> impl IntoResponse {
-    let user = User {
-        id: 1337,
-        username: payload.username,
-    };
-
-    (StatusCode::CREATED, Json(user))
 }

@@ -10,6 +10,7 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
-utoipa = "5.0.0-alpha.0"
+utoipa = { version = "5.0.0-alpha.0", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "7.1.1-alpha.0", features = ["axum"] }
 utoipauto = "0.1.10"
 anyhow = "1.0.86"
