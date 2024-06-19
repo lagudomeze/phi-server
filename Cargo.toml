@@ -14,5 +14,17 @@ utoipa = { version = "5.0.0-alpha.0", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "7.1.1-alpha.0", features = ["axum"] }
 utoipauto = "0.1.11"
 anyhow = "1.0.86"
-sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio", "macros"] }
+sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio", "macros", "chrono", "time", "migrate"] }
 structopt = { version = "0.3.26" }
+chrono = { version = "0.4.38", features = ["serde"]}
+
+[dependencies.ioc]
+#git = "https://github.com/lagudomeze/ioc.git"
+path = "../ioc"
+
+[dependencies.cfg-rs]
+version = "0.4.0"
+features = ["full"]
+
+[dependencies.linkme]
+version = "0.3"

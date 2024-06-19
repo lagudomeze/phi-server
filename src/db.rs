@@ -1,25 +1,31 @@
-use std::sync::{OnceLock};
-
 use anyhow::Result as AnyResult;
+use ioc::{Bean, BeanFactory, Context};
 use sqlx::SqlitePool;
 use tracing::info;
 
-static DB: OnceLock<SqlitePool> = OnceLock::new();
+#[derive(Bean)]
+#[custom_factory]
+pub(crate) struct Db;
 
-pub(crate) fn db() -> &'static SqlitePool {
-    DB.get().expect("not connect!")
+impl BeanFactory for Db {
+    type Bean = SqlitePool;
+    fn build(ctx: &mut Context) -> ioc::Result<Self::Bean> {
+        let database_url = ctx.get_config::<String>("db.url")?;
+
+        info!("connecting to {database_url}:");
+        let pool = SqlitePool::connect_lazy(database_url.as_str())
+            .map_err(anyhow::Error::from)?;
+        info!("build connection pool success!");
+
+        Ok(pool)
+    }
 }
 
-pub(crate) async fn init(database_url: &str) -> AnyResult<()> {
-    let db = DB.get_or_init(|| {
-        info!("connecting to {database_url}:");
-        let pool = SqlitePool::connect_lazy(database_url).expect("connect failed");
-        info!("build connection pool success!");
-        pool
-    });
+pub(crate) async fn init(_database_url: &str) -> AnyResult<()> {
+    let db = Db::try_get()?;
 
     info!("migrating DB:");
-    sqlx::migrate!("DB/migrations").run(db).await?;
+    sqlx::migrate!("./migrations").run(db).await?;
     info!("migrate DB success!");
     Ok(())
 }

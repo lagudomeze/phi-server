@@ -1,16 +1,17 @@
-
 use axum::{
     debug_handler,
+    response::Result,
     Router,
     routing::get,
-    response::Result
 };
+use ioc::Bean;
 use serde::{Deserialize, Serialize};
+use sqlx::types::chrono::NaiveDateTime;
 use utoipa::{ToResponse, ToSchema};
 
 use crate::{
-    common::{Array},
-    db::db,
+    common::Array,
+    db::Db,
 };
 
 pub(crate) fn router() -> Router {
@@ -30,12 +31,12 @@ pub(crate) async fn welcome() -> String {
     format!("Welcome, {email}!")
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema, ToResponse)]
+#[derive(sqlx::FromRow, Serialize, Deserialize, Debug, ToSchema, ToResponse)]
 pub(crate) struct User {
     id: String,
     name: String,
     source: Option<String>,
-    created_at: i64,
+    created_at: NaiveDateTime,
 }
 
 #[debug_handler]
@@ -45,8 +46,8 @@ pub(crate) struct User {
     responses((status = 200, body = [User]))
 )]
 pub(crate) async fn users() -> Result<Array<User>> {
-    let conn = db();
-    let x = sqlx::query_as!(User, "select * from users")
+    let conn = Db::get();
+    let x = sqlx::query_as("SELECT id, name, source, created_at FROM users")
         .fetch_all(conn)
         .await;
     Ok(x.unwrap().into())

@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 
 use anyhow::Result as AnyResult;
 use axum::Router;
+use ioc::run;
 use structopt::StructOpt;
 use tracing::info;
 use utoipa::OpenApi;
@@ -39,7 +40,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> AnyResult<()> {
-    tracing_subscriber::fmt::init();
+    run!(dir = "./", profile = "prod");
 
     let args = Args::from_args_safe()?;
 
