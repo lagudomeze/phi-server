@@ -1,35 +1,58 @@
-use axum::http::StatusCode;
-use axum::Json;
-use axum::response::{IntoResponse, Response};
+use salvo::{
+    oapi::{self, Components, Operation},
+    prelude::*,
+};
 use serde::Serialize;
-use utoipa::ToSchema;
+use thiserror::Error;
 
-#[derive(Debug, ToSchema, Serialize, Default)]
-pub(crate) struct Array<T>(Vec<T>);
+pub(crate) type Result<T> = std::result::Result<T, AppError>;
 
-impl<T> AsRef<Vec<T>> for Array<T> {
-    fn as_ref(&self) -> &Vec<T> {
-        &self.0
+#[derive(Error, Debug)]
+pub(crate) enum AppError {
+    #[error("sqlx error: `{0}`")]
+    DbSqlxError(#[from] sqlx::Error),
+    #[error("ioc error: `{0}`")]
+    IocError(#[from] ioc::IocError),
+    #[error("clap error: `{0}`")]
+    ClapError(#[from] clap::Error),
+    #[error(transparent)]
+    SalvoError(#[from] salvo::Error),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+#[derive(Serialize, ToSchema, ToResponse)]
+pub struct ErrorResponse {
+    code: u16,
+    message: String,
+}
+
+impl Scribe for AppError {
+    fn render(self, res: &mut Response) {
+        res.status_code(StatusCode::INTERNAL_SERVER_ERROR);
+        res.render(Json(ErrorResponse {
+            code: 500,
+            message: self.to_string(),
+        }));
     }
 }
 
-impl<T> AsMut<Vec<T>> for Array<T> {
-    fn as_mut(&mut self) -> &mut Vec<T> {
-        &mut self.0
-    }
-}
-
-impl<T> From<Vec<T>> for Array<T> {
-    fn from(value: Vec<T>) -> Self {
-        Self(value)
-    }
-}
-
-impl<T> IntoResponse for Array<T>
-where
-    T: Serialize,
-{
-    fn into_response(self) -> Response {
-        (StatusCode::OK, Json(self.0)).into_response()
+impl EndpointOutRegister for AppError {
+    fn register(components: &mut Components, operation: &mut Operation) {
+        operation.responses.insert(
+            StatusCode::INTERNAL_SERVER_ERROR.as_str(),
+            oapi::Response::new("Internal server error")
+                .add_content("application/json", ErrorResponse::to_schema(components)),
+        );
+        operation.responses.insert(
+            StatusCode::NOT_FOUND.as_str(),
+            oapi::Response::new("Not found")
+                .add_content("application/json", ErrorResponse::to_schema(components)),
+        );
+        operation.responses.insert(
+            StatusCode::BAD_REQUEST.as_str(),
+            oapi::Response::new("Bad request")
+                .add_content("application/json", ErrorResponse::to_schema(components)),
+        );
     }
 }

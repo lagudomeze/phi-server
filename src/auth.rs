@@ -1,30 +1,20 @@
-use axum::{
-    debug_handler,
-    response::Result,
-    Router,
-    routing::get,
-};
 use ioc::Bean;
+use salvo::{
+    prelude::*,
+};
+use crate::common::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::types::chrono::NaiveDateTime;
-use utoipa::{ToResponse, ToSchema};
 
-use crate::{
-    common::Array,
-    db::Db,
-};
+use crate::db::Db;
 
 pub(crate) fn router() -> Router {
     Router::new()
-        .route("/welcome", get(welcome))
-        .route("/manager/users", get(users))
+        .push(Router::with_path("/manager/users").get(users))
+        .push(Router::with_path("/welcome").get(welcome))
 }
 
-#[debug_handler]
-#[utoipa::path(get,
-    path = "/welcome",
-    responses((status = 200, body = String))
-)]
+#[endpoint]
 pub(crate) async fn welcome() -> String {
     // todo
     let email = "";
@@ -39,18 +29,14 @@ pub(crate) struct User {
     created_at: NaiveDateTime,
 }
 
-#[debug_handler]
-#[utoipa::path(get,
-    path = "/manager/users",
-    tag = "manager",
-    responses((status = 200, body = [User]))
-)]
-pub(crate) async fn users() -> Result<Array<User>> {
+#[endpoint(status_codes(200, 500))]
+pub(crate) async fn users() -> Result<Json<Vec<User>>> {
     let conn = Db::get();
-    let x = sqlx::query_as("SELECT id, name, source, created_at FROM users")
+    let result: Vec<User> = sqlx::query_as("SELECT id, name, source, created_at FROM users")
         .fetch_all(conn)
-        .await;
-    Ok(x.unwrap().into())
+        .await
+        .map_err(anyhow::Error::from)?;
+    Ok(Json(result))
 }
 
 

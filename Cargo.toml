@@ -4,27 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7.5", features = ["macros"] }
+salvo = { version = "0.68", features = ["default", "logging", "oapi"] }
 tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread", "signal"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
-utoipa = { version = "5.0.0-alpha.0", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "7.1.1-alpha.0", features = ["axum"] }
-utoipauto = "0.1.11"
-anyhow = "1.0.86"
 sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio", "macros", "chrono", "time", "migrate"] }
-structopt = { version = "0.3.26" }
 chrono = { version = "0.4.38", features = ["serde"]}
+anyhow = "1.0.86"
+thiserror = "1.0.61"
+clap = { version = "4.5.7" , features = ["derive"]}
 
 [dependencies.ioc]
-#git = "https://github.com/lagudomeze/ioc.git"
-path = "../ioc"
+git = "https://github.com/lagudomeze/ioc.git"
 
-[dependencies.cfg-rs]
-version = "0.4.0"
-features = ["full"]
-
-[dependencies.linkme]
-version = "0.3"
