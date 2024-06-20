@@ -13,22 +13,32 @@ mod web;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Name of the person to greet
-    #[structopt(short, long)]
+    /// Enable debug mode
+    #[arg(short, long)]
     debug: bool,
 
-    /// Name of the person to greet
+    /// Directory for configuration files. Configuration file should be named as {app-name}-profile.toml
     #[arg(short, long, default_value = ".")]
     config_dir: String,
 
+    /// Profile to use
     #[arg(short, long, default_value = "prod")]
     profile: String,
 }
 
 fn main() -> common::Result<()> {
-    let args = Args::try_parse()?;
+    let args = Args::parse();
 
-    run!(dir = args.config_dir.as_str(), profile = args.profile.as_str());
+    println!("{args:?}!" );
+
+    if args.debug {
+        unsafe { std::env::set_var("RUST_LOG", "debug"); }
+    }
+
+    run!(
+        dir = args.config_dir.as_str(),
+        profile = args.profile.as_str()
+    );
 
     let router = Router::new()
         .push(auth::router());
