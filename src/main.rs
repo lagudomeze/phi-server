@@ -1,6 +1,6 @@
-use ioc::run;
-use salvo::Router;
 use clap::Parser;
+use ioc::{Bean, LogPatcher, run};
+use salvo::Router;
 
 use crate::web::WebServer;
 
@@ -31,14 +31,18 @@ fn main() -> common::Result<()> {
 
     println!("{args:?}!" );
 
-    if args.debug {
-        unsafe { std::env::set_var("RUST_LOG", "debug"); }
-    }
-
-    run!(
+    let _ = run!(
         dir = args.config_dir.as_str(),
         profile = args.profile.as_str()
     );
+
+    if args.debug {
+        let s = ["trace"];
+        let iter = s.iter();
+
+        LogPatcher::try_get()?
+            .reload(iter)?;
+    }
 
     let router = Router::new()
         .push(auth::router());

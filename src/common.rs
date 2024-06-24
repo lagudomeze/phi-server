@@ -13,8 +13,6 @@ pub(crate) enum AppError {
     DbSqlxError(#[from] sqlx::Error),
     #[error("ioc error: `{0}`")]
     IocError(#[from] ioc::IocError),
-    #[error("clap error: `{0:?}`")]
-    ClapError(#[from] clap::Error),
     #[error(transparent)]
     SalvoError(#[from] salvo::Error),
     #[error(transparent)]
@@ -56,3 +54,4 @@ impl EndpointOutRegister for AppError {
         );
     }
 }
+

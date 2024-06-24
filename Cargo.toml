@@ -5,17 +5,20 @@ edition = "2021"
 
 [dependencies]
 salvo = { version = "0.68", features = ["default", "logging", "oapi"] }
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread", "signal"] }
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
-serde = { version = "1.0.203", features = ["derive"] }
-serde_json = "1.0.117"
-sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio", "macros", "chrono", "time", "migrate"] }
-chrono = { version = "0.4.38", features = ["serde"]}
-anyhow = "1.0.86"
-thiserror = "1.0.61"
-clap = { version = "4.5.7" , features = ["derive"]}
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tracing = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio", "macros", "chrono", "time", "migrate"] }
+chrono = { version = "0.4", features = ["serde"]}
+anyhow = "1"
+thiserror = "1"
+clap = { version = "4" , features = ["derive"]}
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+features = ["fmt", "std"]
 
 [dependencies.ioc]
-git = "https://github.com/lagudomeze/ioc.git"
-
+#git = "https://github.com/lagudomeze/ioc.git"
+path = "../ioc"
