@@ -1,42 +1,45 @@
 use ioc::Bean;
-use salvo::{
-    prelude::*,
-};
-use crate::common::Result;
+use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
-use sqlx::types::chrono::NaiveDateTime;
+use simply_poem::{
+    mvc,
+};
+use sqlx::{
+    SqlitePool,
+    types::chrono::NaiveDateTime
+};
+use db::Db;
 
-use crate::db::Db;
+use crate::common::{Response, Result};
+use crate::db;
 
-pub(crate) fn router() -> Router {
-    Router::new()
-        .push(Router::with_path("/manager/users").get(users))
-        .push(Router::with_path("/welcome").get(welcome))
+#[derive(Bean)]
+pub struct UserRepo {
+    #[inject(Db)]
+    db: &'static SqlitePool
 }
 
-#[endpoint]
-pub(crate) async fn welcome() -> String {
-    // todo
-    let email = "";
-    format!("Welcome, {email}!")
+#[mvc]
+impl UserRepo {
+
+    #[oai(path = "/manager/users", method = "get")]
+    async fn users(&self) -> Result<Response<Vec<User>>> {
+        let result: Vec<User> = sqlx::query_as("SELECT id, name, source, created_at FROM users")
+            .fetch_all(self.db)
+            .await
+            .map_err(anyhow::Error::from)?;
+        Ok(Response::ok(result))
+    }
+
 }
 
-#[derive(sqlx::FromRow, Serialize, Deserialize, Debug, ToSchema, ToResponse)]
+
+#[derive(sqlx::FromRow, Serialize, Deserialize, Debug, Object)]
 pub(crate) struct User {
     id: String,
     name: String,
     source: Option<String>,
     created_at: NaiveDateTime,
-}
-
-#[endpoint(status_codes(200, 500))]
-pub(crate) async fn users() -> Result<Json<Vec<User>>> {
-    let conn = Db::get();
-    let result: Vec<User> = sqlx::query_as("SELECT id, name, source, created_at FROM users")
-        .fetch_all(conn)
-        .await
-        .map_err(anyhow::Error::from)?;
-    Ok(Json(result))
 }
 
 

@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-salvo = { version = "0.68", features = ["default", "logging", "oapi"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
 tracing = "0.1"
 serde = { version = "1.0", features = ["derive"] }
@@ -20,5 +19,17 @@ version = "0.3"
 features = ["fmt", "std"]
 
 [dependencies.ioc]
-#git = "https://github.com/lagudomeze/ioc.git"
-path = "../ioc"
+git = "https://github.com/lagudomeze/ioc.git"
+version = "0.1"
+
+[dependencies.simply_poem]
+git = "https://github.com/lagudomeze/ioc.git"
+version = "0.1"
+
+[dependencies.poem]
+version = "3"
+features = ["default", "chrono"]
+
+[dependencies.poem-openapi]
+version = "5"
+features = ["chrono"]

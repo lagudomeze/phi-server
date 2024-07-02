@@ -1,6 +1,6 @@
 use clap::Parser;
 use ioc::{Bean, LogPatcher, run};
-use salvo::Router;
+use simply_poem::load_types;
 
 use crate::web::WebServer;
 
@@ -9,6 +9,7 @@ mod material;
 mod common;
 mod db;
 mod web;
+mod log;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -25,6 +26,8 @@ struct Args {
     #[arg(short, long, default_value = "prod")]
     profile: String,
 }
+
+load_types!();
 
 fn main() -> common::Result<()> {
     let args = Args::parse();
@@ -44,10 +47,8 @@ fn main() -> common::Result<()> {
             .reload(iter)?;
     }
 
-    let router = Router::new()
-        .push(auth::router());
 
-    WebServer::run(router)?;
+    WebServer::run()?;
 
     Ok(())
 }
