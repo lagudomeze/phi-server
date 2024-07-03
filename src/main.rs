@@ -40,11 +40,8 @@ fn main() -> common::Result<()> {
     );
 
     if args.debug {
-        let s = ["trace"];
-        let iter = s.iter();
-
         LogPatcher::try_get()?
-            .reload(iter)?;
+            .reload(["trace"])?;
     }
 
 
