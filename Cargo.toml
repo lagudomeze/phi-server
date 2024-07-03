@@ -22,10 +22,7 @@ features = ["fmt", "std"]
 git = "https://github.com/lagudomeze/ioc.git"
 version = "0.1"
 #path = "../ioc"
-
-[dependencies.simply_poem]
-git = "https://github.com/lagudomeze/ioc.git"
-version = "0.1"
+features = ["default", "mvc"]
 
 [dependencies.poem]
 version = "3"

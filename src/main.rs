@@ -1,14 +1,10 @@
 use clap::Parser;
-use ioc::{Bean, LogPatcher, run};
-use simply_poem::load_types;
-
-use crate::web::WebServer;
+use ioc::{Bean, export, LogPatcher, run};
 
 mod auth;
 mod material;
 mod common;
 mod db;
-mod web;
 mod log;
 
 #[derive(Parser, Debug)]
@@ -27,7 +23,7 @@ struct Args {
     profile: String,
 }
 
-load_types!();
+export!();
 
 fn main() -> common::Result<()> {
     let args = Args::parse();
@@ -43,9 +39,6 @@ fn main() -> common::Result<()> {
         LogPatcher::try_get()?
             .reload(["trace"])?;
     }
-
-
-    WebServer::run()?;
 
     Ok(())
 }

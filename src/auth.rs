@@ -1,13 +1,11 @@
-use ioc::Bean;
+use ioc::{Bean, mvc};
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
-use simply_poem::{
-    mvc,
-};
 use sqlx::{
     SqlitePool,
     types::chrono::NaiveDateTime
 };
+
 use db::Db;
 
 use crate::common::{Response, Result};

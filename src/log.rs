@@ -1,10 +1,9 @@
-use ioc::{Bean, LogPatcher};
+use ioc::{Bean, LogPatcher, mvc};
 use poem_openapi::{
     Object,
     payload::Json,
 };
 use serde::Deserialize;
-use simply_poem::mvc;
 use tracing::{debug, info, trace};
 
 use crate::common::{Response, Result};

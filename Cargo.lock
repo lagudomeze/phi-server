@@ -1039,12 +1039,13 @@ dependencies = [
 [[package]]
 name = "ioc"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "anyhow",
  "cfg-rs",
  "ioc_core",
- "ioc_derive",
+ "ioc_core_derive",
+ "ioc_macro",
+ "ioc_mvc",
  "log",
  "thiserror",
  "tracing",
@@ -1054,7 +1055,6 @@ dependencies = [
 [[package]]
 name = "ioc_core"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1063,9 +1063,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "ioc_derive"
+name = "ioc_core_derive"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1078,11 +1077,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "ioc_macro"
+version = "0.1.0"
+dependencies = [
+ "darling",
+ "ioc_mvc_scan",
+ "ioc_scan",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.68",
+ "thiserror",
+]
+
+[[package]]
+name = "ioc_mvc"
+version = "0.1.0"
+dependencies = [
+ "ioc_core",
+ "ioc_core_derive",
+ "ioc_mvc_derive",
+ "poem",
+ "poem-openapi",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "ioc_mvc_derive"
+version = "0.1.0"
+dependencies = [
+ "darling",
+ "ioc_scan",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.68",
+]
+
+[[package]]
+name = "ioc_mvc_scan"
+version = "0.1.0"
+dependencies = [
+ "darling",
+ "ioc_scan",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.68",
+]
+
+[[package]]
 name = "ioc_scan"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
- "prettyplease",
  "proc-macro2",
  "quote",
  "syn 2.0.68",
@@ -1439,7 +1484,6 @@ dependencies = [
  "poem-openapi",
  "serde",
  "serde_json",
- "simply_poem",
  "sqlx",
  "thiserror",
  "tokio",
@@ -1606,16 +1650,6 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
-
-[[package]]
-name = "prettyplease"
-version = "0.2.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f12335488a2f3b0a83b14edad48dca9879ce89b2edd10e80237e4e852dd645e"
-dependencies = [
- "proc-macro2",
- "syn 2.0.68",
-]
 
 [[package]]
 name = "proc-macro-crate"
@@ -1945,27 +1979,6 @@ checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest",
  "rand_core",
-]
-
-[[package]]
-name = "simply_poem"
-version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
-dependencies = [
- "poem-openapi",
- "simply_poem_macro",
-]
-
-[[package]]
-name = "simply_poem_macro"
-version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
-dependencies = [
- "darling",
- "ioc_scan",
- "proc-macro2",
- "quote",
- "syn 2.0.68",
 ]
 
 [[package]]
