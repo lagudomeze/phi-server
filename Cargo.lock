@@ -1039,6 +1039,7 @@ dependencies = [
 [[package]]
 name = "ioc"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1055,6 +1056,7 @@ dependencies = [
 [[package]]
 name = "ioc_core"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1065,6 +1067,7 @@ dependencies = [
 [[package]]
 name = "ioc_core_derive"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1079,6 +1082,7 @@ dependencies = [
 [[package]]
 name = "ioc_macro"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "darling",
  "ioc_mvc_scan",
@@ -1092,6 +1096,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "ioc_core",
  "ioc_core_derive",
@@ -1105,6 +1110,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_derive"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1116,6 +1122,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_scan"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1127,6 +1134,7 @@ dependencies = [
 [[package]]
 name = "ioc_scan"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#7061a85791e90655a1a7cdecd0f2a6c7aa9e3d26"
 dependencies = [
  "proc-macro2",
  "quote",
