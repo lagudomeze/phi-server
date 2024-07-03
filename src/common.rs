@@ -1,13 +1,13 @@
-use poem::{
-    http::StatusCode,
-    web::Json
-};
+use poem::{Error, http::StatusCode};
 use poem_openapi::{
-    ApiResponse, Object,
+    ApiResponse,
+    Object,
+    payload::Json,
     registry::{MetaResponses, Registry},
-    ResponseContent,
     types::{ParseFromJSON, ToJSON},
+    types::Type
 };
+use serde::Serialize;
 use thiserror::Error;
 
 pub(crate) type Result<T> = std::result::Result<T, AppError>;
@@ -24,9 +24,15 @@ pub(crate) enum AppError {
     Other(#[from] anyhow::Error),
 }
 
+impl From<poem::Error> for AppError {
+    fn from(value: Error) -> Self {
+        Self::PoemError(value)
+    }
+}
+
 impl Into<poem::Error> for AppError {
     fn into(self) -> poem::Error {
-        poem::Error::new(self, StatusCode::INTERNAL_SERVER_ERROR)
+        Error::new(self, StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -40,14 +46,14 @@ impl ApiResponse for AppError {
     fn register(_: &mut Registry) {}
 }
 
-#[derive(Object)]
-pub struct ResponseBody<T: ParseFromJSON + ToJSON + Send + Sync> {
+#[derive(Object, Serialize)]
+pub struct ResponseBody<T: Type + ParseFromJSON + ToJSON + Serialize> {
     code: i32,
     msg: String,
     data: Option<T>,
 }
 
-impl<T: ParseFromJSON + ToJSON + Send + Sync> ResponseBody<T> {
+impl<T: Type + ParseFromJSON + ToJSON + Serialize> ResponseBody<T> {
     pub fn ok(data: T) -> Self {
         Self::new(0, "OK".to_string(), data)
     }
@@ -64,14 +70,16 @@ impl<T: ParseFromJSON + ToJSON + Send + Sync> ResponseBody<T> {
 }
 
 #[derive(ApiResponse)]
-pub enum Response<T: ParseFromJSON + ToJSON + Send + Sync> {
+#[oai]
+pub enum Response<T: Type + ParseFromJSON + ToJSON + Serialize> {
     #[oai(status = 200)]
     Ok(Json<ResponseBody<T>>),
 }
 
+
 impl<T> Response<T>
 where
-    T: ParseFromJSON + ToJSON + Send + Sync,
+    T: Type + ParseFromJSON + ToJSON + Serialize,
 {
     pub fn ok(data: T) -> Self {
         Self::Ok(Json(ResponseBody::ok(data)))
