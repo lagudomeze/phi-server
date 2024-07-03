@@ -6,19 +6,20 @@ use poem::{
     get,
     handler,
     listener::TcpListener,
+    middleware::Tracing,
     Response,
     Route,
-    Server,
-    middleware::Tracing
+    Server
 };
 use tracing::info;
-
 #[derive(Bean)]
 pub(crate) struct WebServer {
     #[value("web.addr")]
     addr: String,
     #[value("web.graceful_shutdown_timeout")]
     shutdown_timeout: Duration,
+    #[value("web.tracing")]
+    tracing: bool,
 }
 
 #[handler]
@@ -40,8 +41,7 @@ impl WebServer {
             .nest("/", api_service)
             .nest("/ui", ui)
             .at("/favicon.ico", get(favicon))
-            .with(Tracing::default());
-
+            .with_if(self.tracing, Tracing::default());
 
         let listener = TcpListener::bind(self.addr.as_str());
 
@@ -51,21 +51,18 @@ impl WebServer {
                 gracefully_shutdown(),
                 Some(self.shutdown_timeout));
 
-        info!("listening on {}", self.addr.as_str());
-
         server.await?;
-
-        info!("server stop.");
 
         Ok(())
     }
 
     pub fn run() -> anyhow::Result<()> {
-        tokio::runtime::Builder::new_multi_thread()
+        let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
-            .build()
-            .expect("Failed building the Runtime")
-            .block_on(async {
+            .build()?;
+        let metrics = runtime.metrics();
+        info!("workers: {}", metrics.num_workers());
+        runtime.block_on(async {
                 WebServer::try_get()?.run_server().await
             })?;
         Ok(())

@@ -1,6 +1,8 @@
 [db]
 url = "sqlite:app.db?mode=rwc"
+max_connections = 64
 
 [web]
 addr = "127.0.0.1:8080"
 graceful_shutdown_timeout = "1s"
+tracing = true
