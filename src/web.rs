@@ -1,7 +1,16 @@
 use std::time::Duration;
 
 use ioc::Bean;
-use poem::{get, handler, listener::TcpListener, Response, Route, Server};
+use poem::{
+    EndpointExt,
+    get,
+    handler,
+    listener::TcpListener,
+    Response,
+    Route,
+    Server,
+    middleware::Tracing
+};
 use tracing::info;
 
 #[derive(Bean)]
@@ -18,7 +27,6 @@ async fn favicon() -> Response {
     Response::builder().content_type("image/x-icon").body(ICO)
 }
 
-
 impl WebServer {
     pub async fn run_server(&self) -> anyhow::Result<()> {
         let name = env!("CARGO_PKG_NAME");
@@ -31,7 +39,8 @@ impl WebServer {
         let app = Route::new()
             .nest("/", api_service)
             .nest("/ui", ui)
-            .at("/favicon.ico", get(favicon));
+            .at("/favicon.ico", get(favicon))
+            .with(Tracing::default());
 
 
         let listener = TcpListener::bind(self.addr.as_str());

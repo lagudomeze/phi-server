@@ -1039,6 +1039,7 @@ dependencies = [
 [[package]]
 name = "ioc"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1053,6 +1054,7 @@ dependencies = [
 [[package]]
 name = "ioc_core"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1063,9 +1065,10 @@ dependencies = [
 [[package]]
 name = "ioc_derive"
 version = "0.1.0"
+source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "darling",
- "ioc_scan 0.1.0",
+ "ioc_scan",
  "proc-macro2",
  "quote",
  "serde",
@@ -1077,18 +1080,7 @@ dependencies = [
 [[package]]
 name = "ioc_scan"
 version = "0.1.0"
-dependencies = [
- "prettyplease",
- "proc-macro2",
- "quote",
- "syn 2.0.68",
- "thiserror",
-]
-
-[[package]]
-name = "ioc_scan"
-version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#aa2a31b153bb44b0abb811b152e7ece954527f35"
+source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -1958,7 +1950,7 @@ dependencies = [
 [[package]]
 name = "simply_poem"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#aa2a31b153bb44b0abb811b152e7ece954527f35"
+source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "poem-openapi",
  "simply_poem_macro",
@@ -1967,10 +1959,10 @@ dependencies = [
 [[package]]
 name = "simply_poem_macro"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#aa2a31b153bb44b0abb811b152e7ece954527f35"
+source = "git+https://github.com/lagudomeze/ioc.git#eec73e1df449f4f1013281cb32a967ae15ea0f1d"
 dependencies = [
  "darling",
- "ioc_scan 0.1.0 (git+https://github.com/lagudomeze/ioc.git)",
+ "ioc_scan",
  "proc-macro2",
  "quote",
  "syn 2.0.68",
