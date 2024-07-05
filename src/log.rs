@@ -1,4 +1,8 @@
-use ioc::{Bean, LogPatcher, mvc};
+use ioc::{
+    Bean,
+    log::LogPatcher,
+    mvc,
+};
 use poem_openapi::{
     Object,
     payload::Json,

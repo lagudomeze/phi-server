@@ -1,5 +1,5 @@
 use clap::Parser;
-use ioc::{Bean, export, LogPatcher, run};
+use ioc::{export, run};
 
 mod auth;
 mod material;
@@ -11,7 +11,7 @@ mod log;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Enable debug mode
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "true")]
     debug: bool,
 
     /// Directory for configuration files. Configuration file should be named as {app-name}-profile.toml
@@ -23,7 +23,7 @@ struct Args {
     profile: String,
 }
 
-export!();
+export!(root = "src/main.rs");
 
 fn main() -> common::Result<()> {
     let args = Args::parse();
@@ -31,14 +31,11 @@ fn main() -> common::Result<()> {
     println!("{args:?}!" );
 
     let _ = run!(
-        dir = args.config_dir.as_str(),
-        profile = args.profile.as_str()
+        debug = args.debug;
+        dir = args.config_dir.as_str();
+        profile = args.profile.as_str();
+        crates(ioc);
     );
-
-    if args.debug {
-        LogPatcher::try_get()?
-            .reload(["trace"])?;
-    }
 
     Ok(())
 }
