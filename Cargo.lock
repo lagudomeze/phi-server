@@ -1039,7 +1039,7 @@ dependencies = [
 [[package]]
 name = "ioc"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1056,7 +1056,7 @@ dependencies = [
 [[package]]
 name = "ioc_core"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1067,7 +1067,7 @@ dependencies = [
 [[package]]
 name = "ioc_core_derive"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1082,7 +1082,7 @@ dependencies = [
 [[package]]
 name = "ioc_macro"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "darling",
  "ioc_mvc_scan",
@@ -1097,7 +1097,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "ioc_core",
  "ioc_core_derive",
@@ -1111,7 +1111,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_derive"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1123,7 +1123,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_scan"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1135,7 +1135,7 @@ dependencies = [
 [[package]]
 name = "ioc_scan"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#27ac6bbd17d7a62620e82f99f62045f0eb1c296c"
+source = "git+https://github.com/lagudomeze/ioc.git#10679391401ea9f5ed0c0a8f3ae0b74280ce6236"
 dependencies = [
  "proc-macro2",
  "quote",
