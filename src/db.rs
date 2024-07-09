@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result as AnyResult;
-use ioc::{Bean, BeanFactory, Context};
+use ioc::{Bean, Construct, InitCtx};
 use sqlx::{
     sqlite::{
         SqliteConnectOptions,
@@ -14,12 +14,12 @@ use tokio::runtime::Builder;
 use tracing::info;
 
 #[derive(Bean)]
-#[custom_factory]
+#[bean(construct = Db)]
 pub(crate) struct Db {}
 
-impl BeanFactory for Db {
+impl Construct for Db {
     type Bean = SqlitePool;
-    fn build(ctx: &mut Context) -> ioc::Result<Self::Bean> {
+    fn build(ctx: &mut InitCtx) -> ioc::Result<Self::Bean> {
         let database_url = ctx.get_config::<String>("db.url")?;
         let max_connections = ctx.get_config::<u32>("db.max_connections")?;
 

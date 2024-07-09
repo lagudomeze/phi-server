@@ -6,7 +6,7 @@ use super::user::UserRepo;
 
 #[derive(Bean)]
 pub struct LoginMvc {
-    #[inject]
+    #[inject(bean)]
     repo: &'static UserRepo,
 }
 

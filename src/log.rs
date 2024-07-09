@@ -20,7 +20,7 @@ struct LogDirective {
 
 #[derive(Bean)]
 pub struct Logger {
-    #[inject]
+    #[inject(bean)]
     patcher: &'static LogPatcher,
 }
 

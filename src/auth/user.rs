@@ -9,7 +9,7 @@ use crate::common::Response;
 
 #[derive(Bean)]
 pub struct UserRepo {
-    #[inject(Db)]
+    #[inject(bean_with = Db)]
     db: &'static SqlitePool,
 }
 
