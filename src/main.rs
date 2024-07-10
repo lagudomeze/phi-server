@@ -23,7 +23,7 @@ struct Args {
     profile: String,
 }
 
-export!();
+export!(root = "src/main.rs");
 
 fn main() -> common::Result<()> {
     let args = Args::parse();

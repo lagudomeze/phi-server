@@ -1,8 +1,9 @@
 use ioc::{Bean, mvc};
 
-use crate::common;
-
-use super::user::UserRepo;
+use crate::{
+    common,
+    auth::user::UserRepo
+};
 
 #[derive(Bean)]
 pub struct LoginMvc {
