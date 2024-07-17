@@ -9,7 +9,13 @@ tracing = true
 
 [web.static]
 enable = true
-mappings = [
-    { path = "/static", dir = "static", listing = true },
-    { path = "/ui", dir = "ui",  listing = true }
-]
+
+[web.static.mapping.storage]
+path = "/storage"
+dir = "storage"
+listing = true
+
+[web.static.mapping.ui]
+path = "/ui"
+dir = "ui"
+listing = true

@@ -9,6 +9,7 @@ use poem_openapi::{
 };
 use serde::Serialize;
 use thiserror::Error;
+use std::io;
 
 pub(crate) type Result<T> = std::result::Result<T, AppError>;
 
@@ -16,6 +17,8 @@ pub(crate) type Result<T> = std::result::Result<T, AppError>;
 pub(crate) enum AppError {
     #[error("sqlx error: `{0}`")]
     DbSqlxError(#[from] sqlx::Error),
+    #[error("io error: `{0}`")]
+    IoError(#[from] io::Error),
     #[error("ioc error: `{0}`")]
     IocError(#[from] ioc::IocError),
     #[error("poem error: `{0}`")]

@@ -13,6 +13,9 @@ chrono = { version = "0.4", features = ["serde"]}
 anyhow = "1"
 thiserror = "1"
 clap = { version = "4" , features = ["derive"]}
+sha2 = { version = "0.10" }
+base64ct = { version = "1", features = ["std", "alloc"] }
+uuid = { version = "1", features = ["v4"] }
 
 [dependencies.tracing-subscriber]
 version = "0.3"
@@ -26,7 +29,7 @@ features = ["default", "mvc", "static-files"]
 
 [dependencies.poem]
 version = "3"
-features = ["default", "chrono"]
+features = ["default", "chrono", "multipart", "tempfile"]
 
 [dependencies.poem-openapi]
 version = "5"
