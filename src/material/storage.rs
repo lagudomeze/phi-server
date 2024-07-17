@@ -1,34 +1,29 @@
 use std::{
     fs::remove_file as std_remove_file,
-    io::Error,
     ops::Deref,
     path::{
         Path,
         PathBuf,
     },
-    pin::Pin,
-    task::{Context, Poll},
 };
 
 use base64ct::{Base64, Encoding};
 use ioc::Bean;
-use poem::{
-    http::Uri,
-    http::uri::Builder as UriBuilder,
-};
 use poem_openapi::NewType;
 use sha2::{Digest, Sha256};
 use tokio::{
     fs::{
-        copy,
         File as TokioFile,
         remove_file,
         rename,
         try_exists,
     },
-    io::{AsyncRead, AsyncReadExt},
+    io::{
+        AsyncRead,
+        AsyncReadExt,
+        AsyncWriteExt
+    }
 };
-use tokio::io::{AsyncWrite, AsyncWriteExt, ReadBuf};
 use tracing::{error, warn};
 use uuid::Uuid;
 
@@ -57,8 +52,6 @@ pub(crate) trait Storage {
 pub(crate) struct LocalStorage {
     #[inject(config = "web.static.mapping.storage.dir")]
     dir: PathBuf,
-    #[inject(config = "web.static.mapping.storage.path")]
-    base: String,
 }
 
 struct TmpFile {

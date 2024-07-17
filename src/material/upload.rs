@@ -4,10 +4,10 @@ use poem_openapi::{
     Multipart,
     NewType,
     payload::Json,
-    types::{ParseFromMultipartField, ParseResult, Type},
+    types::{ParseFromMultipartField, ParseResult},
     types::multipart::Upload
 };
-use tokio::io::AsyncReadExt;
+use poem_openapi::param::Path;
 use crate::common::Result;
 use crate::material::storage::{Id, LocalStorage, Storage};
 
@@ -45,14 +45,19 @@ pub(crate) struct UploadMvc {
 #[mvc]
 impl UploadMvc {
     /// Upload file
-    #[oai(path = "/files", method = "post")]
+    #[oai(path = "/materials/video", method = "post")]
     async fn upload(&self, upload: UploadPayload) -> Result<Json<Id>> {
         let mut file = upload.file.into_file();
 
         let id = self.storage.save(&mut file).await?;
 
-        file.read(&mut Vec::new()).await?;
 
         Ok(Json(id))
+    }
+
+    #[oai(path = "/materials/:id", method = "head")]
+    async fn exists(&self, id: Path<Id>) -> Result<Json<bool>> {
+        let existed = self.storage.exists(&id).await?;
+        Ok(Json(existed))
     }
 }
