@@ -248,9 +248,9 @@ checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
 
 [[package]]
 name = "cc"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eaff6f8ce506b9773fa786672d63fc7a191ffea1be33f72bbd4aeacefca9ffc8"
+checksum = "907d8581360765417f8f2e0e7d602733bbed60156b4465b7617243689ef9b83d"
 
 [[package]]
 name = "cfg-derive"
@@ -1039,7 +1039,6 @@ dependencies = [
 [[package]]
 name = "ioc"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1056,7 +1055,6 @@ dependencies = [
 [[package]]
 name = "ioc_core"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1067,7 +1065,6 @@ dependencies = [
 [[package]]
 name = "ioc_core_derive"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1083,7 +1080,6 @@ dependencies = [
 [[package]]
 name = "ioc_macro"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
  "darling",
  "ioc_mvc_scan",
@@ -1098,8 +1094,8 @@ dependencies = [
 [[package]]
 name = "ioc_mvc"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
+ "cfg-rs",
  "ioc_core",
  "ioc_core_derive",
  "ioc_mvc_derive",
@@ -1112,7 +1108,6 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_derive"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1124,7 +1119,6 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_scan"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
  "darling",
  "ioc_scan",
@@ -1136,7 +1130,6 @@ dependencies = [
 [[package]]
 name = "ioc_scan"
 version = "0.1.0"
-source = "git+https://github.com/lagudomeze/ioc.git#c2b4b3e3d454b7334f24d5a28ebe7ddb2a04083f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1262,6 +1255,16 @@ name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+
+[[package]]
+name = "mime_guess"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4192263c238a5f0d0c6bfd21f336a313a4ce1c450542449ca191bb657b4642ef"
+dependencies = [
+ "mime",
+ "unicase",
+]
 
 [[package]]
 name = "minimal-lexical"
@@ -1554,9 +1557,11 @@ dependencies = [
  "headers",
  "http",
  "http-body-util",
+ "httpdate",
  "hyper",
  "hyper-util",
  "mime",
+ "mime_guess",
  "multer",
  "nix",
  "parking_lot",
@@ -2316,18 +2321,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c546c80d6be4bc6a00c0f01730c08df82eaa7a7a61f11d656526506112cc1709"
+checksum = "f2675633b1499176c2dff06b0856a27976a8f9d436737b4cf4f312d4d91d8bbb"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c3384250002a6d5af4d114f2845d37b57521033f30d5c3f46c4d70e1197533"
+checksum = "d20468752b09f49e909e55a5d338caa8bedf615594e9d80bc4c565d30faf798c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2576,6 +2581,15 @@ name = "uncased"
 version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1b88fcfe09e89d3866a5c11019378088af2d24c3fbd4f0543f96b479ec90697"
+dependencies = [
+ "version_check",
+]
+
+[[package]]
+name = "unicase"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7d2d4dafb69621809a81864c9c1b864479e1235c0dd4e199924b9742439ed89"
 dependencies = [
  "version_check",
 ]

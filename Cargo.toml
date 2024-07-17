@@ -19,10 +19,10 @@ version = "0.3"
 features = ["fmt", "std"]
 
 [dependencies.ioc]
-git = "https://github.com/lagudomeze/ioc.git"
+#git = "https://github.com/lagudomeze/ioc.git"
 version = "0.1"
-#path = "../ioc"
-features = ["default", "mvc"]
+path = "../ioc"
+features = ["default", "mvc", "static-files"]
 
 [dependencies.poem]
 version = "3"

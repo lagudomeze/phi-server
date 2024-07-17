@@ -6,3 +6,10 @@ max_connections = 64
 addr = "127.0.0.1:8080"
 graceful_shutdown_timeout = "1s"
 tracing = true
+
+[web.static]
+enable = true
+mappings = [
+    { path = "/static", dir = "static", listing = true },
+    { path = "/ui", dir = "ui",  listing = true }
+]
