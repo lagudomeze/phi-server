@@ -1,11 +1,12 @@
 use std::{
-    io::Write,
     path::Path,
     process::Command,
 };
 
-use ffmpeg_sidecar::command::FfmpegCommand;
-use ffmpeg_sidecar::ffprobe::ffprobe_path;
+use ffmpeg_sidecar::{
+    command::FfmpegCommand,
+    ffprobe::ffprobe_path,
+};
 use rand::{Rng, thread_rng};
 
 use crate::common::Result;
