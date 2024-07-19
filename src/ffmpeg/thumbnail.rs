@@ -63,7 +63,11 @@ mod tests {
     fn test_thumbnail() {
         auto_download().unwrap();
 
+        let time = std::time::Instant::now();
+
         thumbnail("D:/delete/material/store/79dcc1c32242a04081fa8f9f26fc349d4c330e14e4f8f2dac045a34be30cd71a/raw", "1.jpeg")
             .expect("");
+
+        dbg!(time.elapsed());
     }
 }
