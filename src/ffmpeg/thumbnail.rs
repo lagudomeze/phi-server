@@ -49,9 +49,13 @@ fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>) -> Result<()> {
         .output(&image.as_ref().to_string_lossy())
         .spawn()?;
 
-    child.wait()?;
+    let status = child.wait()?;
 
-    Ok(())
+    if status.success() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("Failed to get thumbnail"))?
+    }
 }
 
 #[cfg(test)]
