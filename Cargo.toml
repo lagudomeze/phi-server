@@ -16,6 +16,10 @@ clap = { version = "4" , features = ["derive"]}
 sha2 = { version = "0.10" }
 base64ct = { version = "1", features = ["std", "alloc"] }
 uuid = { version = "1", features = ["v4"] }
+rand = { version = "0.8", features = ["std"] }
+
+[dependencies.ffmpeg-sidecar]
+version = "1"
 
 [dependencies.tracing-subscriber]
 version = "0.3"

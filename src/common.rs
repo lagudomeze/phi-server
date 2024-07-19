@@ -1,15 +1,19 @@
+use std::io;
+
 use poem::{Error, http::StatusCode};
 use poem_openapi::{
     ApiResponse,
     Object,
     payload::Json,
     registry::{MetaResponses, Registry},
-    types::{ParseFromJSON, ToJSON},
-    types::Type
+    types::{
+        ParseFromJSON,
+        ToJSON,
+        Type,
+    }
 };
 use serde::Serialize;
 use thiserror::Error;
-use std::io;
 
 pub(crate) type Result<T> = std::result::Result<T, AppError>;
 
@@ -17,6 +21,8 @@ pub(crate) type Result<T> = std::result::Result<T, AppError>;
 pub(crate) enum AppError {
     #[error("sqlx error: `{0}`")]
     DbSqlxError(#[from] sqlx::Error),
+    #[error("parse float error: `{0}`")]
+    ParseFloatError(#[from] std::num::ParseFloatError),
     #[error("io error: `{0}`")]
     IoError(#[from] io::Error),
     #[error("ioc error: `{0}`")]

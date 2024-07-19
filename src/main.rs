@@ -6,6 +6,7 @@ mod material;
 mod common;
 mod db;
 mod log;
+mod ffmpeg;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
