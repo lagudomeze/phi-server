@@ -13,17 +13,17 @@ fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
         .args(&["-profile:v", "main", "-level", "4.0"])
         .args(&["-b:v", "1500k", "-maxrate", "1500k", "-bufsize", "2250k", ])
         .args(&["-start_number", "0", "-hls_time", "1", "-hls_list_size", "0", "-f", "hls", ])
-        .output(&format!("{output_dir}/720p/slice.m3u8"))
+        .arg(output_dir.as_ref().join("720p").join("slice.m3u8"))
         .codec_video("libx264")
         .args(&["-filter:v", "scale=1280:-1", "-g", "30"])
         .args(&["-profile:v", "main", "-level", "4.2"])
         .args(&["-b:v", "3000k", "-maxrate", "3000k", "-bufsize", "4500k", ])
         .args(&["-start_number", "0", "-hls_time", "1", "-hls_list_size", "0", "-f", "hls", ])
-        .output(&format!("{output_dir}/1080p/slice.m3u8"))
+        .arg(output_dir.as_ref().join("1080p").join("slice.m3u8"))
         .spawn()?
         .wait()?;
 
-    fs::write(&format!("{output_dir}/slice.m3u8"), "
+    fs::write(output_dir.as_ref().join("slice.m3u8"), "
                     #EXTM3U
                     #EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=1280x720
                     720p/slice.m3u8
