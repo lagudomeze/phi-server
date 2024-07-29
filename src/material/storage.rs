@@ -9,7 +9,7 @@ use ioc::Bean;
 use poem_openapi::NewType;
 use sha2::{Digest, Sha256};
 use tokio::{
-    fs::{File as TokioFile, remove_file, rename, try_exists},
+    fs::{remove_file, rename, try_exists, File as TokioFile},
     io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
 };
 use tracing::{error, warn};
