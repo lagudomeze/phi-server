@@ -1,9 +1,9 @@
+use crate::db::Db;
 use chrono::NaiveDateTime;
-use ioc::{Bean, mvc};
+use ioc::{mvc, Bean};
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use crate::db::Db;
 
 use crate::common::Response;
 

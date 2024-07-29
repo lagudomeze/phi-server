@@ -1,16 +1,11 @@
 use std::io;
 
-use poem::{Error, http::StatusCode};
+use poem::{http::StatusCode, Error};
 use poem_openapi::{
-    ApiResponse,
-    Object,
     payload::Json,
     registry::{MetaResponses, Registry},
-    types::{
-        ParseFromJSON,
-        ToJSON,
-        Type,
-    }
+    types::{ParseFromJSON, ToJSON, Type},
+    ApiResponse, Object,
 };
 use serde::Serialize;
 use thiserror::Error;
@@ -67,9 +62,7 @@ impl<T: Type + ParseFromJSON + ToJSON + Serialize> ResponseBody<T> {
         Self::new(0, "OK".to_string(), data)
     }
 
-    pub fn new(code: i32,
-               msg: String,
-               data: T) -> Self {
+    pub fn new(code: i32, msg: String, data: T) -> Self {
         Self {
             code,
             msg,
@@ -84,7 +77,6 @@ pub enum Response<T: Type + ParseFromJSON + ToJSON + Serialize> {
     #[oai(status = 200)]
     Ok(Json<ResponseBody<T>>),
 }
-
 
 impl<T> Response<T>
 where

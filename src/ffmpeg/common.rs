@@ -1,15 +1,10 @@
 use ffmpeg_sidecar::{
     command::ffmpeg_is_installed,
-    download::{
-        check_latest_version,
-        download_ffmpeg_package,
-        ffmpeg_download_url,
-        unpack_ffmpeg,
-    },
+    download::{check_latest_version, download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg},
     paths::sidecar_dir,
-    version::ffmpeg_version
+    version::ffmpeg_version,
 };
-use ioc::{Bean, bean, BeanSpec, InitContext};
+use ioc::{bean, Bean, BeanSpec, InitContext};
 use tracing::{debug, info};
 
 #[derive(Debug)]

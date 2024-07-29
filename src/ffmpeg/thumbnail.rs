@@ -1,27 +1,20 @@
-use std::{
-    path::Path,
-    process::Command,
-};
+use std::{path::Path, process::Command};
 
-use ffmpeg_sidecar::{
-    command::FfmpegCommand,
-    ffprobe::ffprobe_path,
-};
-use rand::{Rng, thread_rng};
+use ffmpeg_sidecar::{command::FfmpegCommand, ffprobe::ffprobe_path};
+use rand::{thread_rng, Rng};
 
 use crate::common::Result;
 
 fn duration(path: impl AsRef<Path>) -> Result<f64> {
-    let output = dbg!(
-        Command::new(ffprobe_path())
-            .arg("-v")
-            .arg("error")
-            .arg("-show_entries")
-            .arg("format=duration")
-            .arg("-of")
-            .arg("default=noprint_wrappers=1")
-            .arg(path.as_ref()).output()?
-    );
+    let output = dbg!(Command::new(ffprobe_path())
+        .arg("-v")
+        .arg("error")
+        .arg("-show_entries")
+        .arg("format=duration")
+        .arg("-of")
+        .arg("default=noprint_wrappers=1")
+        .arg(path.as_ref())
+        .output()?);
 
     if output.status.success() {
         let string = dbg!(String::from_utf8_lossy(&output.stdout));

@@ -2,11 +2,11 @@ use clap::Parser;
 use ioc::{export, run};
 
 mod auth;
-mod material;
 mod common;
 mod db;
-mod log;
 mod ffmpeg;
+mod log;
+mod material;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -29,7 +29,7 @@ export!(root = "src/main.rs");
 fn main() -> common::Result<()> {
     let args = Args::parse();
 
-    println!("{args:?}!" );
+    println!("{args:?}!");
 
     let _ = run!(
         debug = args.debug;

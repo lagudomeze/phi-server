@@ -1,12 +1,5 @@
-use ioc::{
-    Bean,
-    log::LogPatcher,
-    mvc,
-};
-use poem_openapi::{
-    Object,
-    payload::Json,
-};
+use ioc::{log::LogPatcher, mvc, Bean};
+use poem_openapi::{payload::Json, Object};
 use serde::Deserialize;
 use tracing::{debug, info, trace};
 

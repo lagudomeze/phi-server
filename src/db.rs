@@ -1,13 +1,9 @@
 use std::str::FromStr;
 
 use anyhow::Result as AnyResult;
-use ioc::{BeanSpec, InitContext, bean};
+use ioc::{bean, BeanSpec, InitContext};
 use sqlx::{
-    sqlite::{
-        SqliteConnectOptions,
-        SqliteJournalMode::Wal,
-        SqlitePoolOptions,
-    },
+    sqlite::{SqliteConnectOptions, SqliteJournalMode::Wal, SqlitePoolOptions},
     SqlitePool,
 };
 use tokio::runtime::Builder;
@@ -33,8 +29,7 @@ impl BeanSpec for Db {
 
 async fn init(database_url: &str, max_connections: u32) -> AnyResult<SqlitePool> {
     info!("connecting to {database_url}:");
-    let options = SqliteConnectOptions::from_str(database_url)?
-        .journal_mode(Wal);
+    let options = SqliteConnectOptions::from_str(database_url)?.journal_mode(Wal);
 
     let db = SqlitePoolOptions::new()
         .max_connections(max_connections)
@@ -43,9 +38,7 @@ async fn init(database_url: &str, max_connections: u32) -> AnyResult<SqlitePool>
     info!("build connection pool success!");
 
     info!("migrating DB:");
-    sqlx::migrate!("./migrations")
-        .run(&db)
-        .await?;
+    sqlx::migrate!("./migrations").run(&db).await?;
     info!("migrate DB success!");
     Ok(db)
 }

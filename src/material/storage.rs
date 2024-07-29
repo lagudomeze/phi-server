@@ -1,10 +1,7 @@
 use std::{
     fs::remove_file as std_remove_file,
     ops::Deref,
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::{Path, PathBuf},
 };
 
 use base64ct::{Base64, Encoding};
@@ -12,17 +9,8 @@ use ioc::Bean;
 use poem_openapi::NewType;
 use sha2::{Digest, Sha256};
 use tokio::{
-    fs::{
-        File as TokioFile,
-        remove_file,
-        rename,
-        try_exists,
-    },
-    io::{
-        AsyncRead,
-        AsyncReadExt,
-        AsyncWriteExt
-    }
+    fs::{File as TokioFile, remove_file, rename, try_exists},
+    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
 };
 use tracing::{error, warn};
 use uuid::Uuid;

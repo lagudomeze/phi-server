@@ -1,24 +1,25 @@
-use ioc::{Bean, mvc};
-use poem::web::Field;
-use poem_openapi::{
-    Multipart,
-    NewType,
-    payload::Json,
-    types::{ParseFromMultipartField, ParseResult},
-    types::multipart::Upload
-};
-use poem_openapi::param::Path;
 use crate::common::Result;
 use crate::material::storage::{Id, LocalStorage, Storage};
+use ioc::{mvc, Bean};
+use poem::web::Field;
+use poem_openapi::param::Path;
+use poem_openapi::{
+    payload::Json,
+    types::multipart::Upload,
+    types::{ParseFromMultipartField, ParseResult},
+    Multipart, NewType,
+};
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
 pub(crate) struct Tags(Vec<String>);
 
 impl ParseFromMultipartField for Tags {
-    async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self>  {
-        if let Some(field) =  field {
-            let tags = field.text().await?
+    async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
+        if let Some(field) = field {
+            let tags = field
+                .text()
+                .await?
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .collect::<Vec<String>>();
@@ -39,7 +40,7 @@ pub(crate) struct UploadPayload {
 #[derive(Bean)]
 pub(crate) struct UploadMvc {
     #[inject(bean)]
-    storage: &'static LocalStorage
+    storage: &'static LocalStorage,
 }
 
 #[mvc]
@@ -50,7 +51,6 @@ impl UploadMvc {
         let mut file = upload.file.into_file();
 
         let id = self.storage.save(&mut file).await?;
-
 
         Ok(Json(id))
     }
