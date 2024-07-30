@@ -68,7 +68,7 @@ mod tests {
     fn test_thumbnail() {
         let time = std::time::Instant::now();
 
-        slice("D:/delete/material/store/79dcc1c32242a04081fa8f9f26fc349d4c330e14e4f8f2dac045a34be30cd71a/raw", "./storage")
+        slice("./video_01.mp4", "./storage")
             .expect("");
 
         dbg!(time.elapsed());
