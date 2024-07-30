@@ -1,8 +1,8 @@
-use std::fs;
-use std::path::Path;
+use std::{fs, path::Path};
 
 use ffmpeg_sidecar::command::FfmpegCommand;
 use tracing::debug;
+
 use crate::common::Result;
 
 fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
