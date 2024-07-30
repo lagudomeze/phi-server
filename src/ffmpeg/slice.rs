@@ -72,10 +72,12 @@ fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ffmpeg_sidecar::download::auto_download;
+    use ffmpeg_sidecar::download::{auto_download, ffmpeg_download_url};
 
     #[test]
     fn test_slice() {
+        println!("{}", ffmpeg_download_url().unwrap());
+
         auto_download().unwrap();
 
         let time = std::time::Instant::now();
