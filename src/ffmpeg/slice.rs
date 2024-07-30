@@ -71,8 +71,8 @@ fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use ffmpeg_sidecar::download::auto_download;
     use super::*;
+    use ffmpeg_sidecar::download::auto_download;
 
     #[test]
     fn test_slice() {

@@ -63,8 +63,7 @@ mod tests {
 
         let time = std::time::Instant::now();
 
-        thumbnail("./video_01.mp4", "1.jpeg")
-            .expect("");
+        thumbnail("./video_01.mp4", "1.jpeg").expect("");
 
         dbg!(time.elapsed());
     }
