@@ -71,10 +71,13 @@ fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use ffmpeg_sidecar::download::auto_download;
     use super::*;
 
     #[test]
     fn test_slice() {
+        auto_download().unwrap();
+
         let time = std::time::Instant::now();
 
         slice("./video_01.mp4", "./storage").expect("");
