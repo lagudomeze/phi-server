@@ -4,8 +4,8 @@ use ffmpeg_sidecar::{
     paths::sidecar_dir,
     version::ffmpeg_version,
 };
-use ioc::{bean, Bean, BeanSpec, InitContext};
-use tracing::{debug, info};
+use ioc::{bean, BeanSpec, InitContext};
+use tracing::info;
 
 #[derive(Debug)]
 pub(crate) struct FFmpegUtils;
