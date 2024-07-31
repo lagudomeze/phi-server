@@ -4,12 +4,37 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7.5", features = ["macros"] }
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread", "signal"] }
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
-serde = { version = "1.0.203", features = ["derive"] }
-serde_json = "1.0.117"
-utoipa = "5.0.0-alpha.0"
-utoipauto = "0.1.10"
-anyhow = "1.0.86"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tracing = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio", "macros", "chrono", "time", "migrate"] }
+chrono = { version = "0.4", features = ["serde"]}
+anyhow = "1"
+thiserror = "1"
+clap = { version = "4" , features = ["derive"]}
+sha2 = { version = "0.10" }
+base64ct = { version = "1", features = ["std", "alloc"] }
+uuid = { version = "1", features = ["v4"] }
+rand = { version = "0.8", features = ["std"] }
+
+[dependencies.ffmpeg-sidecar]
+version = "1"
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+features = ["fmt", "std"]
+
+[dependencies.ioc]
+git = "https://github.com/lagudomeze/ioc.git"
+version = "0.1"
+#path = "../ioc"
+features = ["default", "mvc", "static-files"]
+
+[dependencies.poem]
+version = "3"
+features = ["default", "chrono", "multipart", "tempfile"]
+
+[dependencies.poem-openapi]
+version = "5"
+features = ["chrono"]

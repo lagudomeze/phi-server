@@ -1,0 +1,29 @@
+name: "Test"
+
+on:
+  pull_request:
+
+jobs:
+  check:
+    name: "Cargo check"
+    runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        toolchain: 
+          - nightly
+    steps:
+      - name: "Check out the repo"
+        uses: actions/checkout@v4
+      - name: "Step to install ffmpeg"
+        uses: FedericoCarboni/setup-ffmpeg@v3
+      - name: "Install Rust with matrix toolchain"
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - name: "Install clippy and rustfmt"
+        run: rustup component add clippy rustfmt
+      - name: "Run rustfmt"
+        run: cargo fmt --all -- --check
+      #- run: cargo clippy -- -D warnings
+      - name: "Run clippy"
+        run: cargo clippy
+      - name: "Run test"
+        run: cargo test --verbose
