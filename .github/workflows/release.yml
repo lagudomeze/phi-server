@@ -64,6 +64,8 @@ jobs:
           fi
           
           cp -Rf "${{ steps.ffmpeg.outputs.ffmpeg-path }}" "$dirname"
+          
+          cp "phi-prod.toml" "$dirname"
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z a "$dirname.zip" "$dirname"
