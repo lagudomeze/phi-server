@@ -29,9 +29,9 @@ jobs:
           - build: macos
             os: macos-latest
             target: x86_64-apple-darwin
-          - build: windows-gnu
+          - build: windows-msvc
             os: windows-latest
-            target: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-msvc
     steps:
       - name: "Check out the repo"
         uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
           targets: ${{ matrix.target }}
       - name: Get the release version from the tag
         shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
       - name: Build archive
