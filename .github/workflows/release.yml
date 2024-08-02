@@ -10,10 +10,9 @@ permissions:
   contents: "write"
 
 on:
-  workflow_run:
-    workflows: ["Tag"]
-    types:
-      - "completed"
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   build-and-upload:
