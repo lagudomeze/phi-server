@@ -39,7 +39,9 @@ jobs:
         name: "Step to install ffmpeg"
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
+          ffmpeg-version: release
           architecture: x64
+          linking-type: shared
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
         with:
