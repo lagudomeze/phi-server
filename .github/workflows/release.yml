@@ -63,12 +63,15 @@ jobs:
           - build: linux
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            ffmpeg-linking: static
           - build: macos
             os: macos-latest
             target: x86_64-apple-darwin
+            ffmpeg-linking: static
           - build: windows-msvc
             os: windows-latest
             target: x86_64-pc-windows-msvc
+            ffmpeg-linking: shared
     runs-on: ${{ matrix.os }}
     steps:
       - name: "Check out the repo"
@@ -79,7 +82,7 @@ jobs:
         with:
           ffmpeg-version: release
           architecture: x64
-          linking-type: shared
+          linking-type: ${{ matrix.ffmpeg-linking }}
       - uses: actions/cache@v3
         with:
           path: |
