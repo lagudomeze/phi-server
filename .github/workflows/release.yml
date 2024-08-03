@@ -16,12 +16,49 @@ on:
       - "completed"
 
 jobs:
-  build-and-upload:
-    name: Build and upload
-    runs-on: ${{ matrix.os }}
+  get-tag:
+    name: "Get Tag From Package Version"
+    runs-on: "ubuntu-latest"
+    outputs:
+      pkg-version: ${{ steps.pkg-version.outputs.PKG_VERSION }}
+    steps:
+      - name: "Check out the repo"
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Get tag"
+        id: "pkg-version"
+        shell: "bash"
+        run: |
+          echo PKG_VERSION=$( cat Cargo.toml | grep -m 1 version | awk -F ' = ' '$1 ~ /version/ { gsub(/["]/, "", $2); printf("%s",$2) }' ) >> $GITHUB_OUTPUT
+
+  create-release:
+    name: "Create release"
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: "get-tag"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out the repo"
+        uses: actions/checkout@v4
+
+      - name: "Create release"
+        uses: "taiki-e/create-gh-release-action@v1"
+        with:
+          # (optional) Path to changelog.
+          # changelog: CHANGELOG.md
+          branch: "main"
+          ref: refs/tags/v${{ needs.get-tag.outputs.pkg-version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-assets:
+    name: "Upload assets to Github releases"
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs:
+      - "get-tag"
+      - "create-release"
     strategy:
       matrix:
-        # You can add more, for any target you'd like!
         include:
           - build: linux
             os: ubuntu-latest
@@ -32,6 +69,7 @@ jobs:
           - build: windows-msvc
             os: windows-latest
             target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
     steps:
       - name: "Check out the repo"
         uses: actions/checkout@v4
@@ -42,43 +80,27 @@ jobs:
           ffmpeg-version: release
           architecture: x64
           linking-type: shared
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
         with:
           targets: ${{ matrix.target }}
-      - name: Get the release version from the tag
-        shell: bash
-        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
-      - name: Build archive
-        shell: bash
-        run: |
-          # Replace with the name of your binary
-          binary_name="phi"
-
-          dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
-          mkdir "$dirname"
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv "target/${{ matrix.target }}/release/$binary_name.exe" "$dirname"
-          else
-            mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
-          fi
-          
-          cp -Rf "${{ steps.ffmpeg.outputs.ffmpeg-path }}" "$dirname"
-          
-          cp "phi-prod.toml" "$dirname"
-
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a "$dirname.zip" "$dirname"
-            echo "ASSET=$dirname.zip" >> $GITHUB_ENV
-          else
-            tar -czf "$dirname.tar.gz" "$dirname"
-            echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
-          fi
-      - name: Upload the binaries
-        uses: softprops/action-gh-release@v2
+      - name: "Upload Binaries"
+        uses: "taiki-e/upload-rust-binary-action@v1"
         with:
-          tag_name: ${{ github.ref }}
-          files: |
-            ${{ env.ASSET }}
+          bin: "phi"
+          target: ${{ matrix.target }}
+          archive: $bin-${{ matrix.target }}
+          ref: refs/tags/v${{ needs.get-tag.outputs.pkg-version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          include: phi-prod.toml,${{ steps.ffmpeg.outputs.ffmpeg-path }}
