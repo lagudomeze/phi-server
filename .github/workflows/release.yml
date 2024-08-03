@@ -10,9 +10,10 @@ permissions:
   contents: "write"
 
 on:
-  push:
-    tags:
-      - v*
+  workflow_run:
+    workflows: ["Tag"]
+    types:
+      - "completed"
 
 jobs:
   build-and-upload:
