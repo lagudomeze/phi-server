@@ -74,8 +74,8 @@ jobs:
       - name: "Check out the repo"
         uses: actions/checkout@v4
       - id: "ffmpeg"
-        name: "Step to install ffmpeg"
-        uses: FedericoCarboni/setup-ffmpeg@v3
+        name: Setup FFmpeg
+        uses: federicocarboni/setup-ffmpeg@v3.1
         with:
           ffmpeg-version: release
           architecture: x64
