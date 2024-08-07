@@ -1,6 +1,11 @@
-use std::io;
-
-use poem::{Error, http::StatusCode};
+use std::{
+    io,
+    fmt::Display,
+    panic::Location
+};
+use std::fmt::Formatter;
+use anyhow::Context;
+use poem::{Error, http::StatusCode, error::ResponseError, Response as PoemResponse, Body};
 use poem_openapi::{ApiResponse, Object, payload::Json, registry::{MetaResponses, Registry}, Tags, types::{ParseFromJSON, ToJSON, Type}};
 use serde::Serialize;
 use thiserror::Error;
@@ -12,6 +17,17 @@ pub(crate) enum PhiTags {
     Auth
 }
 
+pub trait LocationContext<T, E>: Context<T, E> {
+    fn location<C>(self, context: C, location: &Location) -> anyhow::Result<T>
+    where
+        C: Display + Send + Sync + 'static,
+        Self: Sized,
+    {
+        self.context(format!("`{context}` at `{location}`"))
+    }
+}
+
+impl<T, E, C> LocationContext<T, E> for C where C: Context<T, E> {}
 
 pub(crate) type Result<T> = std::result::Result<T, AppError>;
 
@@ -49,9 +65,17 @@ impl From<poem::Error> for AppError {
     }
 }
 
-impl Into<poem::Error> for AppError {
-    fn into(self) -> poem::Error {
-        Error::new(self, StatusCode::INTERNAL_SERVER_ERROR)
+impl ResponseError  for AppError {
+    fn status(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+
+    fn as_response(&self) -> PoemResponse {
+        let body = Body::from_json(serde_json::json!({
+            "code": 500,
+            "msg": format!("{self}"),
+        })).unwrap();
+        PoemResponse::builder().status(self.status()).body(body)
     }
 }
 

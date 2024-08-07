@@ -1,3 +1,4 @@
+use std::panic::Location;
 use ioc::{Bean, mvc};
 use poem_openapi::{
     Object, param::Query,
@@ -20,6 +21,7 @@ use crate::{
     },
 };
 use crate::client::HttpClient;
+use crate::common::LocationContext;
 
 #[derive(Bean)]
 pub struct LoginMvc {
@@ -101,16 +103,20 @@ impl Oauth2 {
         let result = client
             .post(url)
             .send()
-            .await?
+            .await
+            .location("get access_token", Location::caller())?
             .json::<AccessTokenResult>()
-            .await?;
+            .await
+            .location("get access_token parse json failed", Location::caller())?;
 
         let user = client.get("https://api.github.com/user")
             .bearer_auth(result.access_token)
             .send()
-            .await?
+            .await
+            .location("get user info", Location::caller())?
             .json::<AuthedGithubUser>()
-            .await?;
+            .await
+            .location("get access_token parse json failed", Location::caller())?;
 
         let user_id = user.user_id();
         if !self.service.exists_by_id(&user_id).await? {
@@ -147,7 +153,11 @@ impl LoginMvc {
 
     #[oai(path = "/oauth2_login", method = "get")]
     async fn login_by_github_code(&self, code: Query<String>) -> common::Result<common::Response<LoginResult>> {
-        let token = self.oauth.login_by_github_code(&code.0).await?;
+        let token = self
+            .oauth
+            .login_by_github_code(&code.0)
+            .await
+            .location("login failed", Location::caller())?;
         Ok(common::Response::ok(LoginResult { token }))
     }
 }
