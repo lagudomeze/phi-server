@@ -19,3 +19,13 @@ listing = true
 path = "/ui"
 dir = "ui"
 listing = true
+
+[oauth]
+authorization_url = "https://github.com/login/oauth/authorize"
+client_id = "Ov23liT2qfXbByb1kPSL"
+client_secret = "8f665beb9f075d16b4169b623448a5eb5a496b00"
+scopes = ["read:user", "read:email"]
+
+[jwt]
+document_path = "keys/secret.pem"
+expire_seconds = 1800

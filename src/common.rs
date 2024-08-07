@@ -1,14 +1,17 @@
 use std::io;
 
-use poem::{http::StatusCode, Error};
-use poem_openapi::{
-    payload::Json,
-    registry::{MetaResponses, Registry},
-    types::{ParseFromJSON, ToJSON, Type},
-    ApiResponse, Object,
-};
+use poem::{Error, http::StatusCode};
+use poem_openapi::{ApiResponse, Object, payload::Json, registry::{MetaResponses, Registry}, Tags, types::{ParseFromJSON, ToJSON, Type}};
 use serde::Serialize;
 use thiserror::Error;
+
+
+#[derive(Tags)]
+pub(crate) enum PhiTags {
+    V1,
+    Auth
+}
+
 
 pub(crate) type Result<T> = std::result::Result<T, AppError>;
 
@@ -24,6 +27,18 @@ pub(crate) enum AppError {
     IocError(#[from] ioc::IocError),
     #[error("poem error: `{0}`")]
     PoemError(poem::Error),
+    #[error("http error: `{0}`")]
+    HttpError(#[from] http::Error),
+    #[error("invalid uri: `{0}`")]
+    InvalidUri(#[from] http::uri::InvalidUri),
+    #[error("url parse error: `{0}`")]
+    UrlParseError(#[from] url::ParseError),
+    #[error("reqwest error: `{0:?}`")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("jwt error: `{0}`")]
+    JwtError(#[from] jsonwebtoken::errors::Error),
+    #[error("ring error: `{0}`")]
+    UnspecifiedRingError(#[from] ring::error::Unspecified),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }

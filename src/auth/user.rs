@@ -1,11 +1,11 @@
-use crate::db::Db;
 use chrono::NaiveDateTime;
-use ioc::{mvc, Bean};
+use ioc::{Bean, mvc};
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use crate::common::Response;
+use crate::db::Db;
 
 #[derive(Bean)]
 pub struct UserRepo {
@@ -31,4 +31,39 @@ pub(crate) struct User {
     name: String,
     source: Option<String>,
     created_at: NaiveDateTime,
+}
+
+impl User {
+    fn new(id: String, name: String, source: String) -> Self {
+        Self {
+            id,
+            name,
+            source: Some(source),
+            created_at: chrono::Utc::now().naive_utc(),
+        }
+    }
+}
+
+#[derive(Bean)]
+pub struct UserService {
+    #[inject(bean = Db)]
+    db: &'static SqlitePool,
+}
+
+impl UserService {
+    pub(crate) async fn exists_by_id(&self, id: &str) -> Result<bool, sqlx::Error> {
+        sqlx::query_scalar!("SELECT COUNT(1) FROM users WHERE id = ?1", id)
+            .fetch_one(self.db)
+            .await
+            .map(|count| count > 0)
+    }
+
+    pub(crate) async fn create_user(&self, id: &str, name: &str, source: String) -> Result<(), sqlx::Error> {
+        let now = chrono::Utc::now();
+        let native_utc = now.naive_utc();
+        sqlx::query!("INSERT INTO users (id, name, source, created_at) VALUES (?1, ?2, ?3, ?4)", id, name, source, native_utc)
+            .execute(self.db)
+            .await
+            .map(|_| ())
+    }
 }
