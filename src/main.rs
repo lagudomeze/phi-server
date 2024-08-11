@@ -5,12 +5,12 @@ use clap::Parser;
 use ioc::{export, run};
 
 mod auth;
+mod client;
 mod common;
 mod db;
 mod ffmpeg;
 mod log;
 mod material;
-mod client;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

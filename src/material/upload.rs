@@ -1,13 +1,22 @@
-use crate::common::Result;
-use crate::material::storage::{Id, LocalStorage, Storage};
-use ioc::{mvc, Bean};
+use ioc::{mvc, Bean, OpenApi};
 use poem::web::Field;
-use poem_openapi::param::Path;
 use poem_openapi::{
+    param::Path,
+    payload::EventStream,
     payload::Json,
-    types::multipart::Upload,
-    types::{ParseFromMultipartField, ParseResult},
+    types::{multipart::Upload, ParseFromMultipartField, ParseResult},
     Multipart, NewType,
+};
+use tokio::{sync::mpsc::channel, task::spawn};
+use tokio_stream::wrappers::ReceiverStream;
+
+use crate::{
+    common::FormatedEvent,
+    common::{Response, Result},
+    material::{
+        material::MaterialsService,
+        storage::{Id, LocalStorage, Storage},
+    },
 };
 
 #[derive(NewType, Debug)]
@@ -32,32 +41,80 @@ impl ParseFromMultipartField for Tags {
 
 #[derive(Debug, Multipart)]
 pub(crate) struct UploadPayload {
-    file: Upload,
-    tags: Option<Tags>,
-    desc: Option<String>,
+    pub(crate) file: Upload,
+    pub(crate) tags: Option<Tags>,
+    pub(crate) desc: Option<String>,
 }
 
 #[derive(Bean)]
 pub(crate) struct UploadMvc {
     #[inject(bean)]
     storage: &'static LocalStorage,
+    #[inject(bean)]
+    materials_svc: &'static MaterialsService,
 }
 
 #[mvc]
+#[OpenApi(prefix_path = "/api/v1")]
 impl UploadMvc {
-    /// Upload file
-    #[oai(path = "/materials/video", method = "post")]
-    async fn upload(&self, upload: UploadPayload) -> Result<Json<Id>> {
+    //todo
+    #[oai(path = "/materials:search", method = "post")]
+    async fn search(&self, upload: UploadPayload) -> Result<Json<Id>> {
         let mut file = upload.file.into_file();
 
         let id = self.storage.save(&mut file).await?;
 
-        Ok(Json(id))
+        Ok(Json(id.into()))
     }
 
     #[oai(path = "/materials/:id", method = "head")]
-    async fn exists(&self, id: Path<Id>) -> Result<Json<bool>> {
-        let existed = self.storage.exists(&id).await?;
-        Ok(Json(existed))
+    async fn exists(&self, id: Path<Id>) -> Result<Response<bool>> {
+        if self.storage.exists(&id).await? {
+            Ok(Response::ok(true))
+        } else {
+            Ok(Response::not_found())
+        }
+    }
+
+    #[oai(path = "/materials/:id", method = "get")]
+    async fn detail(&self, id: Path<Id>) -> Result<Json<Id>> {
+        Ok(Json(id.0))
+    }
+
+    /// Upload file
+    #[oai(path = "/materials/video", method = "post")]
+    async fn upload2(&self, upload: UploadPayload) -> EventStream<ReceiverStream<FormatedEvent>> {
+        let (tx, rx) = channel(32);
+
+        let _detached = spawn(self.materials_svc.upload(upload, tx));
+
+        EventStream::new(ReceiverStream::new(rx))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use poem_openapi::payload::EventStream;
+    use tokio::spawn;
+    use tokio::sync::mpsc::channel;
+    use tokio_stream::wrappers::ReceiverStream;
+
+    #[tokio::test]
+    async fn test() -> anyhow::Result<()> {
+        let (tx, rx) = channel::<u64>(32);
+
+        let _sse = EventStream::new(ReceiverStream::new(rx));
+
+        let a: tokio::task::JoinHandle<Result<(), anyhow::Error>> = spawn(async move {
+            tx.send(1).await?;
+            tx.send(2).await?;
+            tx.send(3).await?;
+            tx.send(4).await?;
+            Ok(())
+        });
+
+        println!("{:?}", a.await??);
+
+        Ok(())
     }
 }

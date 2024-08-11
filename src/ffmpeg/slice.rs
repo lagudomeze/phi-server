@@ -5,7 +5,7 @@ use tracing::debug;
 
 use crate::common::Result;
 
-fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
+pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
     let slice_720p = output_dir.as_ref().join("720p");
     fs::create_dir_all(&slice_720p)?;
 

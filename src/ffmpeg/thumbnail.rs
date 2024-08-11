@@ -28,7 +28,7 @@ fn duration(path: impl AsRef<Path>) -> Result<f64> {
     }
 }
 
-fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>) -> Result<()> {
+pub(crate) fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>) -> Result<()> {
     let duration = duration(path.as_ref())? as u64;
 
     let mut rand = thread_rng();

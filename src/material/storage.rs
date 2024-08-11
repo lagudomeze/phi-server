@@ -1,5 +1,9 @@
+use std::fmt::{Display, Formatter};
 use std::{
-    fs::remove_file as std_remove_file,
+    fs::{
+        create_dir_all,
+        remove_file as std_remove_file
+    },
     ops::Deref,
     path::{Path, PathBuf},
 };
@@ -7,18 +11,25 @@ use std::{
 use base64ct::{Base64, Encoding};
 use ioc::Bean;
 use poem_openapi::NewType;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::{
     fs::{remove_file, rename, try_exists, File as TokioFile},
-    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWriteExt, copy},
 };
 use tracing::{error, warn};
 use uuid::Uuid;
 
-use crate::common::Result;
+use crate::common::{AppError, Result};
 
-#[derive(NewType)]
-pub(crate) struct Id(String);
+#[derive(NewType, Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct Id(pub(crate) String);
+
+impl Display for Id {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 impl Deref for Id {
     type Target = str;
@@ -28,12 +39,36 @@ impl Deref for Id {
     }
 }
 
+pub(crate) enum SavedId {
+    Existed(Id),
+    New(Id),
+}
+
+impl Into<Id> for SavedId {
+    fn into(self) -> Id {
+        match self {
+            SavedId::Existed(id) => id,
+            SavedId::New(id) => id,
+        }
+    }
+}
+
 pub(crate) trait Storage {
     async fn exists(&self, id: &Id) -> Result<bool>;
 
     async fn delete(&self, id: &Id) -> Result<()>;
 
-    async fn save(&self, source: impl AsyncRead + Unpin) -> Result<Id>;
+    async fn raw_file(&self, id: &Id) -> Result<PathBuf>;
+    async fn assert_file(&self, id: &Id, path: impl AsRef<Path>) -> Result<PathBuf>;
+
+    async fn save(&self, source: impl AsyncRead + Unpin) -> Result<SavedId>;
+
+    async fn save_asserts(
+        &self,
+        id: &Id,
+        path: impl AsRef<Path>,
+        source: impl AsyncRead + Unpin,
+    ) -> Result<u64>;
 }
 
 #[derive(Bean)]
@@ -92,7 +127,27 @@ impl Storage for LocalStorage {
         }
     }
 
-    async fn save(&self, mut source: impl AsyncRead + Unpin) -> Result<Id> {
+    async fn raw_file(&self, id: &Id) -> Result<PathBuf> {
+        if !self.exists(id).await? {
+            return Err(AppError::MaterialNotFound(id.clone()));
+        }
+
+        let mut buf = self.path(id);
+        buf.push("raw");
+        Ok(buf)
+    }
+
+    async fn assert_file(&self, id: &Id, path: impl AsRef<Path>) -> Result<PathBuf> {
+        if !self.exists(id).await? {
+            return Err(AppError::MaterialNotFound(id.clone()));
+        }
+
+        let mut buf = self.path(id);
+        buf.push(path);
+        Ok(buf)
+    }
+
+    async fn save(&self, mut source: impl AsyncRead + Unpin) -> Result<SavedId> {
         // todo maybe use cache in heap?
         let mut cache = [0; 512];
 
@@ -112,7 +167,38 @@ impl Storage for LocalStorage {
         let array = hasher.finalize();
         let id = Id(Base64::encode_string(&array));
 
-        move_guard.move_to(self.path(&id)).await?;
-        Ok(id)
+        let mut target = self.path(&id);
+        target.push("raw");
+
+        if try_exists(&target).await? {
+            return Ok(SavedId::Existed(id));
+        } else {
+            if let Some(parent) = target.parent() {
+                create_dir_all(parent)?;
+            }
+            move_guard.move_to(target).await?;
+            Ok(SavedId::New(id))
+        }
+    }
+    async fn save_asserts(
+        &self,
+        id: &Id,
+        path: impl AsRef<Path>,
+        mut source: impl AsyncRead + Unpin,
+    ) -> Result<u64> {
+        if !self.exists(id).await? {
+            return Err(AppError::MaterialNotFound(id.clone()));
+        }
+
+        let mut buf = self.path(&id);
+        buf.push(path.as_ref());
+
+        if let Some(parent) = buf.parent() {
+            create_dir_all(parent)?;
+        }
+
+        let mut file = TokioFile::create(&buf).await?;
+
+        Ok(copy(&mut source, &mut file).await?)
     }
 }

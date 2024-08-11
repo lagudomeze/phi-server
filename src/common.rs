@@ -1,20 +1,23 @@
-use std::{
-    io,
-    fmt::Display,
-    panic::Location
-};
-use std::fmt::Formatter;
-use anyhow::Context;
-use poem::{Error, http::StatusCode, error::ResponseError, Response as PoemResponse, Body};
-use poem_openapi::{ApiResponse, Object, payload::Json, registry::{MetaResponses, Registry}, Tags, types::{ParseFromJSON, ToJSON, Type}};
-use serde::Serialize;
-use thiserror::Error;
+use std::{fmt::Display, io, panic::Location};
 
+use anyhow::Context;
+use poem::{error::ResponseError, http::StatusCode, Body, Error, Response as PoemResponse};
+use poem_openapi::{
+    payload::Json,
+    registry::{MetaResponses, Registry},
+    types::{ParseFromJSON, ToJSON, Type},
+    ApiResponse, Object, Tags,
+};
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use tokio::sync::mpsc::error::SendError;
+use tokio::task::JoinError;
+
+use crate::material::storage::Id;
 
 #[derive(Tags)]
 pub(crate) enum PhiTags {
-    V1,
-    Auth
+    Auth,
 }
 
 pub trait LocationContext<T, E>: Context<T, E> {
@@ -35,6 +38,16 @@ pub(crate) type Result<T> = std::result::Result<T, AppError>;
 pub(crate) enum AppError {
     #[error("sqlx error: `{0}`")]
     DbSqlxError(#[from] sqlx::Error),
+    #[error("join error: `{0}`")]
+    JoinError(#[from] JoinError),
+    #[error("material not found: `{0}`")]
+    MaterialNotFound(Id),
+    #[error("video upload event send error: `{0}`")]
+    SseError(
+        #[from]
+        #[source]
+        SendError<FormatedEvent>,
+    ),
     #[error("parse float error: `{0}`")]
     ParseFloatError(#[from] std::num::ParseFloatError),
     #[error("io error: `{0}`")]
@@ -65,7 +78,7 @@ impl From<poem::Error> for AppError {
     }
 }
 
-impl ResponseError  for AppError {
+impl ResponseError for AppError {
     fn status(&self) -> StatusCode {
         StatusCode::INTERNAL_SERVER_ERROR
     }
@@ -74,7 +87,8 @@ impl ResponseError  for AppError {
         let body = Body::from_json(serde_json::json!({
             "code": 500,
             "msg": format!("{self}"),
-        })).unwrap();
+        }))
+        .unwrap();
         PoemResponse::builder().status(self.status()).body(body)
     }
 }
@@ -87,6 +101,13 @@ impl ApiResponse for AppError {
     }
 
     fn register(_: &mut Registry) {}
+}
+
+#[derive(Object, Serialize, Deserialize)]
+pub(crate) struct FormatedEvent {
+    pub(crate) id: Id,
+    pub(crate) progress: i16,
+    pub(crate) state: String,
 }
 
 #[derive(Object, Serialize)]
@@ -108,6 +129,14 @@ impl<T: Type + ParseFromJSON + ToJSON + Serialize> ResponseBody<T> {
             data: Some(data),
         }
     }
+
+    pub fn not_found() -> Self {
+        Self {
+            code: 404,
+            msg: "not found".to_string(),
+            data: None,
+        }
+    }
 }
 
 #[derive(ApiResponse)]
@@ -115,6 +144,8 @@ impl<T: Type + ParseFromJSON + ToJSON + Serialize> ResponseBody<T> {
 pub enum Response<T: Type + ParseFromJSON + ToJSON + Serialize> {
     #[oai(status = 200)]
     Ok(Json<ResponseBody<T>>),
+    #[oai(status = 404)]
+    NotFound(Json<ResponseBody<T>>),
 }
 
 impl<T> Response<T>
@@ -123,5 +154,8 @@ where
 {
     pub fn ok(data: T) -> Self {
         Self::Ok(Json(ResponseBody::ok(data)))
+    }
+    pub fn not_found() -> Self {
+        Self::Ok(Json(ResponseBody::not_found()))
     }
 }
