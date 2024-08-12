@@ -34,7 +34,7 @@ pub(crate) struct User {
 }
 
 impl User {
-    fn new(id: String, name: String, source: String) -> Self {
+    pub fn new(id: String, name: String, source: String) -> Self {
         Self {
             id,
             name,

@@ -25,6 +25,12 @@ authorization_url = "https://github.com/login/oauth/authorize"
 client_id = "Ov23liT2qfXbByb1kPSL"
 client_secret = "8f665beb9f075d16b4169b623448a5eb5a496b00"
 scopes = ["read:user", "read:email"]
+# policy for redirect url
+# - safe: use registed redirect url.
+# - auto: auto redirect to the url in the request (header Host/X-Real-IP/X-Forwarded-Proto).
+# - manual: redirect to `redirect_url` in the config.
+redirect_policy = "auto"
+redirect_url = "http://localhost:8081/api/auth/oauth2_login"
 
 [jwt]
 document_path = "keys/secret.pem"

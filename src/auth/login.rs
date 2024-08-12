@@ -1,27 +1,45 @@
-use std::panic::Location;
-use ioc::{Bean, mvc};
+use cfg_rs::impl_enum;
+use http::uri::Scheme;
+use ioc::{mvc, Bean};
+use poem::Request;
 use poem_openapi::{
-    Object, param::Query,
+    param::Query,
+    Object,
+    OpenApi
 };
-use poem_openapi::OpenApi;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use std::{
+    borrow::Cow,
+    panic::Location,
+    str::FromStr
+};
 use tracing::info;
-
+use tracing::log::warn;
 use crate::{
     auth::{
         jwt::JwtService,
-        user::{
-            UserService,
-        },
+        user::UserService,
     },
+    client::HttpClient,
     common::{
         self,
-        PhiTags,
+        LocationContext,
+        PhiTags
     },
 };
-use crate::client::HttpClient;
-use crate::common::LocationContext;
+
+enum RedirectPolicy {
+    Safe,
+    Auto,
+    Manual,
+}
+
+impl_enum!(RedirectPolicy {
+    "safe" => RedirectPolicy::Safe
+    "auto" => RedirectPolicy::Auto
+    "manual" => RedirectPolicy::Manual
+});
 
 #[derive(Bean)]
 pub struct LoginMvc {
@@ -45,6 +63,10 @@ pub struct Oauth2 {
     jwt: &'static JwtService,
     #[inject(bean)]
     client: &'static HttpClient,
+    #[inject(config = "oauth.redirect_policy")]
+    redirect_policy: RedirectPolicy,
+    #[inject(config = "oauth.redirect_url")]
+    redirect_url: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -80,12 +102,51 @@ impl AuthedUser for AuthedGithubUser {
 }
 
 impl Oauth2 {
-    pub fn login_url(&self) -> common::Result<Url> {
+    fn redirect_uri(&self, req: &Request) -> Option<Cow<'_, str>> {
+        match self.redirect_policy {
+            RedirectPolicy::Safe => None,
+            RedirectPolicy::Auto => {
+                let scheme = req.header("X-Forwarded-Proto")
+                    .and_then(|proto| {
+                        match Scheme::from_str(proto) {
+                            Ok(scheme) => {
+                                Some(scheme)
+                            }
+                            Err(e) => {
+                                warn!("parse scheme {proto} failed: {e}");
+                                None
+                            }
+                        }
+                    })
+                    .unwrap_or(req.scheme().clone());
+
+                let host = req.header("Host")
+                    .map(Cow::Borrowed)
+                    .unwrap_or_else(|| Cow::Owned(req.local_addr().to_string()));
+
+                Some(Cow::Owned(format!("{scheme}://{host}/api/auth/oauth2_login")))
+            }
+            RedirectPolicy::Manual => Some(Cow::Borrowed(&self.redirect_url)),
+        }
+    }
+}
+
+impl Oauth2 {
+    pub fn login_url(&self, req: &Request) -> common::Result<Url> {
         let mut url = Url::parse(&self.authorization_url)?;
-        url.query_pairs_mut()
-            .append_pair("client_id", &self.client_id)
-            .append_pair("scope", &self.scopes.join(" "))
-            .append_pair("response_type", "code");
+
+        {
+            let mut binding = url.query_pairs_mut();
+            binding
+                .append_pair("client_id", &self.client_id)
+                .append_pair("scope", &self.scopes.join(" "))
+                .append_pair("response_type", "code");
+
+            if let Some(redirect_uri) = self.redirect_uri(req) {
+                binding.append_pair("redirect_uri", &*redirect_uri);
+            }
+        }
+
         Ok(url)
     }
 
@@ -119,12 +180,13 @@ impl Oauth2 {
             .location("get access_token parse json failed", Location::caller())?;
 
         let user_id = user.user_id();
+        let name = user.name();
         if !self.service.exists_by_id(&user_id).await? {
-            self.service.create_user(&user_id, &user.name, user.email).await?;
-            info!("user:{} id:{} created", user.name, user_id);
+            self.service.create_user(&user_id, &name, user.email).await?;
+            info!("user:{} id:{} created", name, user_id);
         }
 
-        let claims = self.jwt.new_claims(user.name, user_id);
+        let claims = self.jwt.new_claims(name, user_id);
 
         let token = self.jwt.encode(&claims)?;
 
@@ -146,8 +208,8 @@ pub(crate) struct LoginResult {
 #[OpenApi(prefix_path = "/api/auth", tag = PhiTags::Auth)]
 impl LoginMvc {
     #[oai(path = "/oauth2_login_url/github", method = "get")]
-    async fn oauth2_login_url(&self) -> common::Result<common::Response<LoginUrl>> {
-        let url = self.oauth.login_url()?.to_string();
+    async fn oauth2_login_url(&self, req: &Request) -> common::Result<common::Response<LoginUrl>> {
+        let url = self.oauth.login_url(req)?.to_string();
         Ok(common::Response::ok(LoginUrl { url }))
     }
 

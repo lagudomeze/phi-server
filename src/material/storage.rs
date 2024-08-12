@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::{
     fs::{remove_file, rename, try_exists, File as TokioFile},
-    io::{AsyncRead, AsyncReadExt, AsyncWriteExt, copy},
+    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
 };
 use tracing::{error, warn};
 use uuid::Uuid;
@@ -63,13 +63,6 @@ pub(crate) trait Storage {
     async fn assert_file(&self, id: &Id, path: impl AsRef<Path>) -> Result<PathBuf>;
 
     async fn save(&self, source: impl AsyncRead + Unpin) -> Result<SavedId>;
-
-    async fn save_asserts(
-        &self,
-        id: &Id,
-        path: impl AsRef<Path>,
-        source: impl AsyncRead + Unpin,
-    ) -> Result<u64>;
 }
 
 #[derive(Bean)]
@@ -172,7 +165,7 @@ impl Storage for LocalStorage {
         target.push("raw");
 
         if try_exists(&target).await? {
-            return Ok(SavedId::Existed(id));
+            Ok(SavedId::Existed(id))
         } else {
             if let Some(parent) = target.parent() {
                 create_dir_all(parent)?;
@@ -180,26 +173,5 @@ impl Storage for LocalStorage {
             move_guard.move_to(target).await?;
             Ok(SavedId::New(id))
         }
-    }
-    async fn save_asserts(
-        &self,
-        id: &Id,
-        path: impl AsRef<Path>,
-        mut source: impl AsyncRead + Unpin,
-    ) -> Result<u64> {
-        if !self.exists(id).await? {
-            return Err(AppError::MaterialNotFound(id.clone()));
-        }
-
-        let mut buf = self.path(&id);
-        buf.push(path.as_ref());
-
-        if let Some(parent) = buf.parent() {
-            create_dir_all(parent)?;
-        }
-
-        let mut file = TokioFile::create(&buf).await?;
-
-        Ok(copy(&mut source, &mut file).await?)
     }
 }
