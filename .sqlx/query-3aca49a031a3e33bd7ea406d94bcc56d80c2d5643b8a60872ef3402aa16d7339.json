@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    INSERT INTO material_tags (material_id, tag, created_at)\n                    VALUES (?, ?, ?)\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "3aca49a031a3e33bd7ea406d94bcc56d80c2d5643b8a60872ef3402aa16d7339"
+}

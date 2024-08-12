@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            DELETE FROM material_tags WHERE material_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "0f9058a2215fa135c7bd392ec1e991500d913d9677278e84e410e1ed43ba7ca1"
+}
