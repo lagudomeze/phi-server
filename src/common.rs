@@ -70,6 +70,8 @@ pub(crate) enum AppError {
     UnspecifiedRingError(#[from] ring::error::Unspecified),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+    #[error("`{0}`")]
+    DbError(String),
 }
 
 impl From<poem::Error> for AppError {

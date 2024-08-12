@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use ioc::{mvc, Bean, OpenApi};
 use poem::web::Field;
 use poem_openapi::{
@@ -18,10 +19,19 @@ use crate::{
         storage::{Id, LocalStorage, Storage},
     },
 };
+use crate::auth::apikey::JwtAuth;
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
 pub(crate) struct Tags(Vec<String>);
+
+impl Deref for Tags {
+    type Target = Vec<String>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl ParseFromMultipartField for Tags {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
@@ -59,7 +69,7 @@ pub(crate) struct UploadMvc {
 impl UploadMvc {
     //todo
     #[oai(path = "/materials:search", method = "post")]
-    async fn search(&self, upload: UploadPayload) -> Result<Json<Id>> {
+    async fn search(&self, upload: UploadPayload, _auth: JwtAuth) -> Result<Json<Id>> {
         let mut file = upload.file.into_file();
 
         let id = self.storage.save(&mut file).await?;
@@ -68,7 +78,7 @@ impl UploadMvc {
     }
 
     #[oai(path = "/materials/:id", method = "head")]
-    async fn exists(&self, id: Path<Id>) -> Result<Response<bool>> {
+    async fn exists(&self, id: Path<Id>, _auth: JwtAuth) -> Result<Response<bool>> {
         if self.storage.exists(&id).await? {
             Ok(Response::ok(true))
         } else {
@@ -77,16 +87,16 @@ impl UploadMvc {
     }
 
     #[oai(path = "/materials/:id", method = "get")]
-    async fn detail(&self, id: Path<Id>) -> Result<Json<Id>> {
+    async fn detail(&self, id: Path<Id>, _auth: JwtAuth) -> Result<Json<Id>> {
         Ok(Json(id.0))
     }
 
     /// Upload file
     #[oai(path = "/materials/video", method = "post")]
-    async fn upload2(&self, upload: UploadPayload) -> EventStream<ReceiverStream<FormatedEvent>> {
+    async fn upload(&self, upload: UploadPayload, auth: JwtAuth) -> EventStream<ReceiverStream<FormatedEvent>> {
         let (tx, rx) = channel(32);
 
-        let _detached = spawn(self.materials_svc.upload(upload, tx));
+        let _detached = spawn(self.materials_svc.upload(upload, tx, auth.into()));
 
         EventStream::new(ReceiverStream::new(rx))
     }

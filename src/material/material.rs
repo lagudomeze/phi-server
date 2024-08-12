@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use ioc::Bean;
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
@@ -6,18 +6,20 @@ use sqlx::SqlitePool;
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
 use tracing::{info, warn};
 
+use crate::common::{AppError, FormatedEvent};
+use crate::material::{STATE_OK, TYPE_VIDEO};
 use crate::{
     common::Result,
     db::Db,
     ffmpeg::slice::slice,
     ffmpeg::thumbnail::thumbnail,
+    material::storage::SavedId,
     material::{
         storage::{Id, LocalStorage, Storage},
         upload::UploadPayload,
     },
-    material::storage::SavedId,
 };
-use crate::common::FormatedEvent;
+use crate::auth::jwt::Claims;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "state")]
@@ -29,6 +31,7 @@ pub(crate) enum VideoUploadEvent {
     #[serde(rename(serialize = "ok"))]
     Ok { id: Id },
 }
+
 impl VideoUploadEvent {
     pub(crate) fn existed(id: Id) -> Self {
         Self::Existed { id }
@@ -73,10 +76,10 @@ impl Into<FormatedEvent> for VideoUploadEvent {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
     use crate::common::FormatedEvent;
     use crate::material::material::VideoUploadEvent;
     use crate::material::storage::Id;
+    use serde_json::{json, Value};
 
     #[test]
     fn test_already_existed_event() -> anyhow::Result<()> {
@@ -146,6 +149,8 @@ mod test {
 pub(crate) struct MaterialsService {
     #[inject(bean)]
     storage: &'static LocalStorage,
+    #[inject(bean)]
+    repo: &'static MaterialsRepo,
 }
 
 impl MaterialsService {
@@ -153,6 +158,7 @@ impl MaterialsService {
         &self,
         upload: UploadPayload,
         tx: Sender<FormatedEvent>,
+        claims: Claims,
     ) -> Result<()> {
         let file_name = upload.file.file_name().unwrap_or("no_name").to_string();
         let raw_file = upload.file.into_file();
@@ -190,7 +196,16 @@ impl MaterialsService {
                 info!("save slice: {file_name} with id {id}");
                 tx.send(VideoUploadEvent::wip(id.clone(), 75).into()).await?;
 
-                //todo insert db
+                let materials = Materials::new_video(
+                    id.to_string(),
+                    file_name,
+                    upload.desc.unwrap_or("".to_string()),
+                    claims.id,
+                );
+                let tags = upload.tags
+                    .as_ref()
+                    .map(|tags| tags.as_slice());
+                self.repo.save(&materials, tags).await?;
 
                 tx.send(VideoUploadEvent::ok(id.clone()).into()).await?;
             }
@@ -213,12 +228,69 @@ pub(crate) struct Materials {
     description: String,
     creator: String,
     state: u16,
-    r#type: u8,
+    r#type: u16,
     created_at: NaiveDateTime,
 }
 
+impl Materials {
+    pub(crate) fn new_video(
+        id: String,
+        name: String,
+        description: String,
+        creator: String,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            description,
+            creator,
+            state: STATE_OK,
+            r#type: TYPE_VIDEO,
+            created_at: Utc::now().naive_utc(),
+        }
+    }
+}
+
 impl MaterialsRepo {
-    async fn save(&self) -> Result<()> {
-        unimplemented!()
+    async fn save(&self, materials: &Materials, tags: Option<&[String]>) -> Result<()> {
+        let mut tx = self.db.begin().await?;
+
+        let result = sqlx::query!(
+            r#"
+            INSERT INTO materials (id, name, description, creator, state, type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            "#,
+            materials.id,
+            materials.name,
+            materials.description,
+            materials.creator,
+            materials.state,
+            materials.r#type,
+            materials.created_at
+        ).execute(&mut *tx)
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(AppError::DbError("save materials failed".to_string()));
+        }
+
+        if let Some(tags) = tags {
+            for tag in tags {
+                sqlx::query!(
+                    r#"
+                    INSERT INTO material_tags (material_id, tag, created_at)
+                    VALUES (?, ?, ?)
+                    "#,
+                    materials.id,
+                    tag,
+                    materials.created_at
+                ).execute(&mut *tx)
+                    .await?;
+            }
+        }
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }

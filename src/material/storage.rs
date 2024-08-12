@@ -59,6 +59,7 @@ pub(crate) trait Storage {
     async fn delete(&self, id: &Id) -> Result<()>;
 
     async fn raw_file(&self, id: &Id) -> Result<PathBuf>;
+
     async fn assert_file(&self, id: &Id, path: impl AsRef<Path>) -> Result<PathBuf>;
 
     async fn save(&self, source: impl AsyncRead + Unpin) -> Result<SavedId>;
