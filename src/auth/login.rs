@@ -28,6 +28,7 @@ use crate::{
         PhiTags
     },
 };
+use crate::auth::user::NewUser;
 
 enum RedirectPolicy {
     Safe,
@@ -77,9 +78,9 @@ struct AccessTokenResult {
 }
 
 pub trait AuthedUser {
-    fn user_id(&self) -> String;
+    fn user_id(&self) -> Cow<'_, str>;
 
-    fn name(&self) -> String;
+    fn name(&self) -> Cow<'_, str>;
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -92,12 +93,12 @@ pub struct AuthedGithubUser {
 }
 
 impl AuthedUser for AuthedGithubUser {
-    fn user_id(&self) -> String {
-        format!("gh_{}", self.id)
+    fn user_id(&self) -> Cow<'_, str> {
+        Cow::Owned(format!("gh_{}", self.id))
     }
 
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed(&self.name)
     }
 }
 
@@ -108,17 +109,14 @@ impl Oauth2 {
             RedirectPolicy::Auto => {
                 let scheme = req.header("X-Forwarded-Proto")
                     .and_then(|proto| {
-                        match Scheme::from_str(proto) {
-                            Ok(scheme) => {
-                                Some(scheme)
-                            }
-                            Err(e) => {
+                        Scheme::from_str(proto)
+                            .map(Cow::Owned)
+                            .inspect_err(|e| {
                                 warn!("parse scheme {proto} failed: {e}");
-                                None
-                            }
-                        }
+                            })
+                            .ok()
                     })
-                    .unwrap_or(req.scheme().clone());
+                    .unwrap_or(Cow::Borrowed(req.scheme()));
 
                 let host = req.header("Host")
                     .map(Cow::Borrowed)
@@ -129,22 +127,17 @@ impl Oauth2 {
             RedirectPolicy::Manual => Some(Cow::Borrowed(&self.redirect_url)),
         }
     }
-}
 
-impl Oauth2 {
     pub fn login_url(&self, req: &Request) -> common::Result<Url> {
         let mut url = Url::parse(&self.authorization_url)?;
 
-        {
-            let mut binding = url.query_pairs_mut();
-            binding
-                .append_pair("client_id", &self.client_id)
-                .append_pair("scope", &self.scopes.join(" "))
-                .append_pair("response_type", "code");
+        url.query_pairs_mut()
+            .append_pair("client_id", &self.client_id)
+            .append_pair("scope", &self.scopes.join(" "))
+            .append_pair("response_type", "code");
 
-            if let Some(redirect_uri) = self.redirect_uri(req) {
-                binding.append_pair("redirect_uri", &*redirect_uri);
-            }
+        if let Some(redirect_uri) = self.redirect_uri(req) {
+            url.query_pairs_mut().append_pair("redirect_uri", &*redirect_uri);
         }
 
         Ok(url)
@@ -182,11 +175,12 @@ impl Oauth2 {
         let user_id = user.user_id();
         let name = user.name();
         if !self.service.exists_by_id(&user_id).await? {
-            self.service.create_user(&user_id, &name, user.email).await?;
+            let new_user  = NewUser::new(user_id.as_ref(), name.as_ref(), &user.email);
+            self.service.create_user(new_user).await?;
             info!("user:{} id:{} created", name, user_id);
         }
 
-        let claims = self.jwt.new_claims(name, user_id);
+        let claims = self.jwt.new_claims(name.into(), user_id.into());
 
         let token = self.jwt.encode(&claims)?;
 

@@ -3,9 +3,12 @@ use ioc::Bean;
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
+use std::borrow::Cow;
+use std::ops::Deref;
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
 use tracing::{info, warn};
 
+use crate::auth::jwt::Claims;
 use crate::common::{AppError, FormatedEvent};
 use crate::material::{STATE_OK, TYPE_VIDEO};
 use crate::{
@@ -19,53 +22,52 @@ use crate::{
         upload::UploadPayload,
     },
 };
-use crate::auth::jwt::Claims;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "state")]
-pub(crate) enum VideoUploadEvent {
+pub(crate) enum VideoUploadEvent<'a> {
     #[serde(rename(serialize = "already_existed"))]
-    Existed { id: Id},
+    Existed { id: Cow<'a, Id> },
     #[serde(rename(serialize = "wip"))]
-    Progress { id: Id, progress: u16 },
+    Progress { id: Cow<'a, Id>, progress: u16 },
     #[serde(rename(serialize = "ok"))]
-    Ok { id: Id },
+    Ok { id: Cow<'a, Id> },
 }
 
-impl VideoUploadEvent {
-    pub(crate) fn existed(id: Id) -> Self {
-        Self::Existed { id }
+impl<'a> VideoUploadEvent<'a> {
+    pub(crate) fn existed(id: &'a Id) -> Self {
+        Self::Existed { id: Cow::Borrowed(id) }
     }
 
-    pub(crate) fn wip(id: Id, progress: u16) -> Self {
-        Self::Progress { id, progress }
+    pub(crate) fn wip(id: &'a Id, progress: u16) -> Self {
+        Self::Progress { id: Cow::Borrowed(id), progress }
     }
 
-    pub(crate) fn ok(id: Id) -> Self {
-        Self::Ok { id}
+    pub(crate) fn ok(id: &'a Id) -> Self {
+        Self::Ok { id: Cow::Borrowed(id) }
     }
 }
 
-impl Into<FormatedEvent> for VideoUploadEvent {
+impl Into<FormatedEvent> for VideoUploadEvent<'_> {
     fn into(self) -> FormatedEvent {
         match self {
             VideoUploadEvent::Existed { id } => {
                 FormatedEvent {
-                    id,
+                    id: id.to_string(),
                     progress: -1,
                     state: "already_existed".to_string()
                 }
             }
             VideoUploadEvent::Progress { id, progress } => {
                 FormatedEvent {
-                    id,
+                    id: id.to_string(),
                     progress: progress as i16,
                     state: "wip".to_string()
                 }
             }
             VideoUploadEvent::Ok { id } => {
                 FormatedEvent {
-                    id,
+                    id: id.to_string(),
                     progress: 100,
                     state: "ok".to_string()
                 }
@@ -83,7 +85,7 @@ mod test {
 
     #[test]
     fn test_already_existed_event() -> anyhow::Result<()> {
-        let test : FormatedEvent = VideoUploadEvent::existed(Id("test".to_string())).into();
+        let test: FormatedEvent = VideoUploadEvent::existed(&Id("test".to_string())).into();
 
         let string = serde_json::to_string(&test)?;
         let json: Value = serde_json::from_str(&string)?;
@@ -104,7 +106,7 @@ mod test {
 
     #[test]
     fn test_already_progress() -> anyhow::Result<()> {
-        let test : FormatedEvent = VideoUploadEvent::wip(Id("test".to_string()), 16).into();
+        let test: FormatedEvent = VideoUploadEvent::wip(&Id("test".to_string()), 16).into();
 
         let string = serde_json::to_string(&test)?;
         let json: Value = serde_json::from_str(&string)?;
@@ -125,7 +127,7 @@ mod test {
 
     #[test]
     fn test_ok() -> anyhow::Result<()> {
-        let test : FormatedEvent = VideoUploadEvent::ok(Id("test".to_string())).into();
+        let test: FormatedEvent = VideoUploadEvent::ok(&Id("test".to_string())).into();
 
         let string = serde_json::to_string(&test)?;
         let json: Value = serde_json::from_str(&string)?;
@@ -166,11 +168,11 @@ impl MaterialsService {
         match self.storage.save(raw_file).await? {
             SavedId::Existed(id) => {
                 warn!("file {file_name} is existed! return id {id}!");
-                tx.send(VideoUploadEvent::existed(id).into()).await?;
+                tx.send(VideoUploadEvent::existed(&id).into()).await?;
             }
             SavedId::New(id) => {
                 info!("new file {file_name} with id {id}");
-                tx.send(VideoUploadEvent::wip(id.clone(), 15).into()).await?;
+                tx.send(VideoUploadEvent::wip(&id, 15).into()).await?;
 
                 let raw = self.storage.raw_file(&id).await?;
                 let thumbnail_assert = self.storage.assert_file(&id, "thumbnail.jpeg").await?;
@@ -183,7 +185,7 @@ impl MaterialsService {
                 .await??;
 
                 info!("save thumbnail: {file_name} with id {id}");
-                tx.send(VideoUploadEvent::wip(id.clone(), 25).into()).await?;
+                tx.send(VideoUploadEvent::wip(&id, 25).into()).await?;
 
                 let slice_raw = raw.clone();
                 spawn_blocking(move || -> Result<()> {
@@ -194,7 +196,7 @@ impl MaterialsService {
                 .await??;
 
                 info!("save slice: {file_name} with id {id}");
-                tx.send(VideoUploadEvent::wip(id.clone(), 75).into()).await?;
+                tx.send(VideoUploadEvent::wip(&id, 75).into()).await?;
 
                 let materials = Materials::new_video(
                     id.to_string(),
@@ -207,10 +209,23 @@ impl MaterialsService {
                     .map(|tags| tags.as_slice());
                 self.repo.save(&materials, tags).await?;
 
-                tx.send(VideoUploadEvent::ok(id.clone()).into()).await?;
+                tx.send(VideoUploadEvent::ok(&id).into()).await?;
             }
         }
 
+        Ok(())
+    }
+    pub(crate) async fn delete(
+        &self,
+        id: Id,
+        _claims: Claims,
+    ) -> Result<()> {
+        if !self.storage.exists(&id).await? {
+            return Err(AppError::MaterialNotFound(id.to_string()));
+        }
+        self.storage.delete(&id).await?;
+
+        self.repo.delete(&id).await?;
         Ok(())
     }
 }
@@ -288,6 +303,32 @@ impl MaterialsRepo {
                     .await?;
             }
         }
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
+    async fn delete(&self, id: &Id) -> Result<()> {
+        let mut tx = self.db.begin().await?;
+
+        let id_str = id.deref();
+
+        sqlx::query!(
+            r#"
+            DELETE FROM materials WHERE id = ?
+            "#,
+            id_str
+        ).execute(&mut *tx)
+            .await?;
+
+        sqlx::query!(
+            r#"
+            DELETE FROM material_tags WHERE material_id = ?
+            "#,
+            id_str
+        ).execute(&mut *tx)
+            .await?;
 
         tx.commit().await?;
 

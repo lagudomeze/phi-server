@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use chrono::NaiveDateTime;
 use ioc::{Bean, mvc};
 use poem_openapi::Object;
@@ -33,13 +34,20 @@ pub(crate) struct User {
     created_at: NaiveDateTime,
 }
 
-impl User {
-    pub fn new(id: String, name: String, source: String) -> Self {
+pub(crate) struct NewUser<'a> {
+    id: Cow<'a, str>,
+    name: Cow<'a, str>,
+    source: Cow<'a, str>,
+}
+
+impl<'a> NewUser<'a> {
+    pub fn new(id: impl Into<Cow<'a, str>>,
+               name: impl Into<Cow<'a, str>>,
+               source: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            id,
-            name,
-            source: Some(source),
-            created_at: chrono::Utc::now().naive_utc(),
+            id: id.into(),
+            name: name.into(),
+            source: source.into(),
         }
     }
 }
@@ -58,11 +66,15 @@ impl UserService {
             .map(|count| count > 0)
     }
 
-    pub(crate) async fn create_user(&self, id: &str, name: &str, source: String) -> Result<(), sqlx::Error> {
+    pub(crate) async fn create_user(&self, new_user: NewUser<'_>) -> Result<(), sqlx::Error> {
         let now = chrono::Utc::now();
         let native_utc = now.naive_utc();
-        sqlx::query!("INSERT INTO users (id, name, source, created_at) VALUES (?1, ?2, ?3, ?4)", id, name, source, native_utc)
-            .execute(self.db)
+        sqlx::query!("INSERT INTO users (id, name, source, created_at) VALUES (?1, ?2, ?3, ?4)",
+                new_user.id,
+                new_user.name,
+                new_user.source,
+                native_utc
+            ).execute(self.db)
             .await
             .map(|_| ())
     }

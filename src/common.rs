@@ -1,5 +1,4 @@
 use std::{fmt::Display, io, panic::Location};
-
 use anyhow::Context;
 use poem::{error::ResponseError, http::StatusCode, Body, Error, Response as PoemResponse};
 use poem_openapi::{
@@ -12,8 +11,6 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::task::JoinError;
-
-use crate::material::storage::Id;
 
 #[derive(Tags)]
 pub(crate) enum PhiTags {
@@ -41,7 +38,7 @@ pub(crate) enum AppError {
     #[error("join error: `{0}`")]
     JoinError(#[from] JoinError),
     #[error("material not found: `{0}`")]
-    MaterialNotFound(Id),
+    MaterialNotFound(String),
     #[error("video upload event send error: `{0}`")]
     SseError(
         #[from]
@@ -107,7 +104,7 @@ impl ApiResponse for AppError {
 
 #[derive(Object, Serialize, Deserialize)]
 pub(crate) struct FormatedEvent {
-    pub(crate) id: Id,
+    pub(crate) id: String,
     pub(crate) progress: i16,
     pub(crate) state: String,
 }

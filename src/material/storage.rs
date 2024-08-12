@@ -123,7 +123,7 @@ impl Storage for LocalStorage {
 
     async fn raw_file(&self, id: &Id) -> Result<PathBuf> {
         if !self.exists(id).await? {
-            return Err(AppError::MaterialNotFound(id.clone()));
+            return Err(AppError::MaterialNotFound(id.to_string()));
         }
 
         let mut buf = self.path(id);
@@ -133,7 +133,7 @@ impl Storage for LocalStorage {
 
     async fn assert_file(&self, id: &Id, path: impl AsRef<Path>) -> Result<PathBuf> {
         if !self.exists(id).await? {
-            return Err(AppError::MaterialNotFound(id.clone()));
+            return Err(AppError::MaterialNotFound(id.to_string()));
         }
 
         let mut buf = self.path(id);

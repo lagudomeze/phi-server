@@ -91,6 +91,12 @@ impl UploadMvc {
         Ok(Json(id.0))
     }
 
+    #[oai(path = "/materials/:id", method = "delete")]
+    async fn delete(&self, id: Path<Id>, auth: JwtAuth) -> Result<Response<String>> {
+        self.materials_svc.delete(id.0, auth.into()).await?;
+        Ok(Response::ok("ok".to_string()))
+    }
+
     /// Upload file
     #[oai(path = "/materials/video", method = "post")]
     async fn upload(&self, upload: UploadPayload, auth: JwtAuth) -> EventStream<ReceiverStream<FormatedEvent>> {
