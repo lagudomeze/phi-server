@@ -21,7 +21,7 @@ dir = "ui"
 listing = true
 
 [ffmpeg]
-sidecar_parent = "x86"
+sidecar_parent = "x64"
 
 [oauth]
 authorization_url = "https://github.com/login/oauth/authorize"
