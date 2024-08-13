@@ -92,6 +92,9 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo-${{ matrix.target }}
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
         with:
@@ -135,7 +138,8 @@ jobs:
         uses: docker/build-push-action@v6
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
-          context: "{{defaultContext}}/docker"
+          context: "./docker"
+          file: "./docker/Dockerfile"
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
