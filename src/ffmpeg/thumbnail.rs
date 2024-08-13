@@ -1,12 +1,15 @@
-use std::{path::Path, process::Command};
-
-use ffmpeg_sidecar::{command::FfmpegCommand, ffprobe::ffprobe_path};
+use ffmpeg_sidecar::command::FfmpegCommand;
 use rand::{thread_rng, Rng};
+use std::{
+    ffi::OsStr,
+    path::Path,
+    process::Command
+};
 
 use crate::common::Result;
 
-fn duration(path: impl AsRef<Path>) -> Result<f64> {
-    let output = dbg!(Command::new(ffprobe_path())
+fn duration(path: impl AsRef<Path>, ffprobe: impl AsRef<OsStr>) -> Result<f64> {
+    let output = dbg!(Command::new(ffprobe)
         .arg("-v")
         .arg("error")
         .arg("-show_entries")
@@ -28,14 +31,14 @@ fn duration(path: impl AsRef<Path>) -> Result<f64> {
     }
 }
 
-pub(crate) fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>) -> Result<()> {
-    let duration = duration(path.as_ref())? as u64;
+pub(crate) fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>, ffmpeg_path: &Path, ffprobe_path: &Path) -> Result<()> {
+    let duration = duration(path.as_ref(), ffprobe_path)? as u64;
 
     let mut rand = thread_rng();
 
     let time = rand.gen_range((duration / 2)..duration) as f64;
 
-    let mut child = FfmpegCommand::new()
+    let mut child = FfmpegCommand::new_with_path(ffmpeg_path)
         .input(&path.as_ref().to_string_lossy())
         .seek(time.to_string())
         .frames(1)
@@ -53,8 +56,11 @@ pub(crate) fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>) -> Resu
 
 #[cfg(test)]
 mod tests {
-    use ffmpeg_sidecar::download::auto_download;
-
+    use ffmpeg_sidecar::{
+        download::auto_download,
+        ffprobe::ffprobe_sidecar_path,
+        paths::ffmpeg_path
+    };
     use super::*;
 
     #[test]
@@ -63,7 +69,9 @@ mod tests {
 
         let time = std::time::Instant::now();
 
-        thumbnail("./video_01.mp4", "1.jpeg").expect("");
+        let ffmpeg = ffmpeg_path();
+        let ffprobe = ffprobe_sidecar_path().unwrap();
+        thumbnail("./video_01.mp4", "1.jpeg", &ffmpeg, &ffprobe).expect("");
 
         dbg!(time.elapsed());
     }

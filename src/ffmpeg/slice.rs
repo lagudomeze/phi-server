@@ -1,18 +1,18 @@
 use std::{fs, path::Path};
-
+use std::ffi::OsStr;
 use ffmpeg_sidecar::command::FfmpegCommand;
 use tracing::debug;
 
 use crate::common::Result;
 
-pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<()> {
+pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>, ffmpeg_path: impl AsRef<OsStr>) -> Result<()> {
     let slice_720p = output_dir.as_ref().join("720p");
     fs::create_dir_all(&slice_720p)?;
 
     let slice_1080p = output_dir.as_ref().join("1080p");
     fs::create_dir_all(&slice_1080p)?;
 
-    let mut child = FfmpegCommand::new()
+    let mut child = FfmpegCommand::new_with_path(ffmpeg_path)
         .input(&input.as_ref().to_string_lossy())
         .codec_video("libx264")
         .args(&["-filter:v", "scale=1280:-1", "-g", "30"])
@@ -72,7 +72,10 @@ pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ffmpeg_sidecar::download::{auto_download, ffmpeg_download_url};
+    use ffmpeg_sidecar::{
+        download::{auto_download, ffmpeg_download_url},
+        paths::ffmpeg_path
+    };
 
     #[test]
     fn test_slice() {
@@ -82,7 +85,9 @@ mod tests {
 
         let time = std::time::Instant::now();
 
-        slice("./video_01.mp4", "./storage").expect("");
+        let ffmpeg = ffmpeg_path();
+
+        slice("./video_01.mp4", "./storage", &ffmpeg).expect("");
 
         dbg!(time.elapsed());
     }

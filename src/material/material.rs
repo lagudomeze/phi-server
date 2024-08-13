@@ -14,14 +14,13 @@ use crate::material::{STATE_OK, TYPE_VIDEO};
 use crate::{
     common::Result,
     db::Db,
-    ffmpeg::slice::slice,
-    ffmpeg::thumbnail::thumbnail,
     material::storage::SavedId,
     material::{
         storage::{Id, LocalStorage, Storage},
         upload::UploadPayload,
     },
 };
+use crate::ffmpeg::common::FFmpegUtils;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "state")]
@@ -153,6 +152,8 @@ pub(crate) struct MaterialsService {
     storage: &'static LocalStorage,
     #[inject(bean)]
     repo: &'static MaterialsRepo,
+    #[inject(bean)]
+    ffmpeg: &'static FFmpegUtils,
 }
 
 impl MaterialsService {
@@ -178,8 +179,9 @@ impl MaterialsService {
                 let thumbnail_assert = self.storage.assert_file(&id, "thumbnail.jpeg").await?;
 
                 let raw_thumbnail = raw.clone();
+                let ffmpeg = self.ffmpeg;
                 spawn_blocking(move || -> Result<()> {
-                    thumbnail(&raw_thumbnail, &thumbnail_assert)?;
+                    ffmpeg.thumbnail(&raw_thumbnail, &thumbnail_assert)?;
                     Ok(())
                 })
                 .await??;
@@ -190,7 +192,7 @@ impl MaterialsService {
                 let slice_raw = raw.clone();
                 spawn_blocking(move || -> Result<()> {
                     //todo
-                    slice(&slice_raw, slice_raw.parent().expect("not here"))?;
+                    ffmpeg.slice(&slice_raw, slice_raw.parent().expect("not here"))?;
                     Ok(())
                 })
                 .await??;
