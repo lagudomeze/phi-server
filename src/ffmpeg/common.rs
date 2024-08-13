@@ -2,7 +2,6 @@ use crate::{
     ffmpeg::slice::slice,
     ffmpeg::thumbnail::thumbnail,
 };
-use anyhow::Context;
 use ffmpeg_sidecar::{
     download::{check_latest_version, download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg},
     version::ffmpeg_version_with_path
@@ -23,7 +22,7 @@ pub(crate) struct FFmpegUtils {
     ffprobe_path: PathBuf,
 }
 
-fn sidecar_path(sidecar_parent: impl AsRef<Path>, name: impl AsRef<Path>) -> PathBuf {
+fn sidecar_path(sidecar_parent: impl AsRef<Path>, name: &str) -> PathBuf {
     let mut path = sidecar_parent
         .as_ref()
         .join(name);
@@ -41,8 +40,8 @@ fn path(sidecar_parent: impl AsRef<Path>, name: &str) -> PathBuf {
     }
 }
 
-fn is_installed(sidecar_parent: impl AsRef<Path>, name: impl AsRef<Path>) -> bool {
-    Command::new(sidecar_path(sidecar_parent, name))
+fn is_installed(sidecar_parent: impl AsRef<Path>, name: &str) -> bool {
+    Command::new(path(sidecar_parent, name))
         .arg("-version")
         .stderr(Stdio::null())
         .stdout(Stdio::null())
