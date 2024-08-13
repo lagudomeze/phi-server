@@ -55,6 +55,7 @@ fn is_installed(sidecar_parent: impl AsRef<Path>, name: impl AsRef<Path>) -> boo
         .map(|s| s.success())
         .unwrap_or_else(|_| false)
 }
+
 impl FFmpegUtils {
     fn init(sidecar_parent: PathBuf) -> ioc::Result<Self> {
         if is_installed(&sidecar_parent, "ffmpeg") {
