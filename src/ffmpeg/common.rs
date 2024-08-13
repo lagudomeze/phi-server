@@ -23,31 +23,26 @@ pub(crate) struct FFmpegUtils {
     ffprobe_path: PathBuf,
 }
 
-fn sidecar_path(sidecar_parent: impl AsRef<Path>, name: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
+fn sidecar_path(sidecar_parent: impl AsRef<Path>, name: impl AsRef<Path>) -> PathBuf {
     let mut path = sidecar_parent
         .as_ref()
-        .parent()
-        .context("Can't get parent of current_exe")?
         .join(name);
     if cfg!(windows) {
         path.set_extension("exe");
     }
-    Ok(path)
+    path
 }
 
 fn path(sidecar_parent: impl AsRef<Path>, name: &str) -> PathBuf {
-    let default = Path::new(name).to_path_buf();
-    match sidecar_path(sidecar_parent, name) {
-        Ok(sidecar_path) => match sidecar_path.exists() {
-            true => sidecar_path,
-            false => default,
-        },
-        Err(_) => default,
+    let sidecar_path = sidecar_path(sidecar_parent, name);
+    match sidecar_path.exists() {
+        true => sidecar_path,
+        false => Path::new(name).to_path_buf(),
     }
 }
 
 fn is_installed(sidecar_parent: impl AsRef<Path>, name: impl AsRef<Path>) -> bool {
-    Command::new(sidecar_path(sidecar_parent, name).unwrap())
+    Command::new(sidecar_path(sidecar_parent, name))
         .arg("-version")
         .stderr(Stdio::null())
         .stdout(Stdio::null())

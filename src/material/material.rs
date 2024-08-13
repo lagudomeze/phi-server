@@ -10,6 +10,7 @@ use tracing::{info, warn};
 
 use crate::auth::jwt::Claims;
 use crate::common::{AppError, FormatedEvent};
+use crate::ffmpeg::common::FFmpegUtils;
 use crate::material::{STATE_OK, TYPE_VIDEO};
 use crate::{
     common::Result,
@@ -20,7 +21,6 @@ use crate::{
         upload::UploadPayload,
     },
 };
-use crate::ffmpeg::common::FFmpegUtils;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "state")]
@@ -217,6 +217,7 @@ impl MaterialsService {
 
         Ok(())
     }
+    
     pub(crate) async fn delete(
         &self,
         id: Id,
