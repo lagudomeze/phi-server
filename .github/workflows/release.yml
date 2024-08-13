@@ -8,6 +8,7 @@ env:
 
 permissions:
   contents: "write"
+  packages: write
 
 on:
   workflow_run:
@@ -132,6 +133,7 @@ jobs:
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Build and push
