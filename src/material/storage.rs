@@ -49,9 +49,9 @@ pub(crate) enum SavedId {
     New(Id),
 }
 
-impl Into<Id> for SavedId {
-    fn into(self) -> Id {
-        match self {
+impl From<SavedId> for Id {
+    fn from(value: SavedId) -> Self {
+        match value {
             SavedId::Existed(id) => id,
             SavedId::New(id) => id,
         }
@@ -86,7 +86,7 @@ struct TmpFile {
 
 impl TmpFile {
     async fn new(dir: impl AsRef<Path>) -> Result<(Self, TokioFile)> {
-        let path = dir.as_ref().join(&format!("{}.tmp", Uuid::new_v4()));
+        let path = dir.as_ref().join(format!("{}.tmp", Uuid::new_v4()));
         let file = TokioFile::create(&path).await?;
         Ok((Self { path }, file))
     }

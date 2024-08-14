@@ -63,11 +63,11 @@ impl FFmpegUtils {
             let destination = sidecar_parent.as_path();
 
             info!("Downloading from: {:?}", download_url);
-            let archive_path = download_ffmpeg_package(download_url, &destination)?;
+            let archive_path = download_ffmpeg_package(download_url, destination)?;
             info!("Downloaded package: {:?}", archive_path);
 
             info!("Extracting to {} ...", destination.display());
-            unpack_ffmpeg(&archive_path, &destination)?;
+            unpack_ffmpeg(&archive_path, destination)?;
 
             let ffmpeg_path = path(&sidecar_parent, "ffmpeg");
             let ffprobe_path = path(&sidecar_parent, "ffprobe");
@@ -94,7 +94,7 @@ impl BeanSpec for FFmpegUtils {
 
     fn build(ctx: &mut impl InitContext) -> ioc::Result<Self::Bean> {
         let sidecar_parent = ctx.get_config::<PathBuf>("ffmpeg.sidecar_parent")?;
-        Ok(Self::init(sidecar_parent)?)
+        Self::init(sidecar_parent)
     }
 }
 

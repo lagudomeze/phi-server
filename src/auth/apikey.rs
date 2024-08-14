@@ -21,9 +21,9 @@ impl Deref for JwtAuth {
     }
 }
 
-impl Into<Claims> for JwtAuth {
-    fn into(self) -> Claims {
-        self.0
+impl From<JwtAuth> for Claims {
+    fn from(value: JwtAuth) -> Self {
+        value.0
     }
 }
 

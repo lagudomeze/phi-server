@@ -17,12 +17,12 @@ pub(crate) fn slice(
     fs::create_dir_all(&slice_1080p)?;
 
     let mut child = FfmpegCommand::new_with_path(ffmpeg_path)
-        .input(&input.as_ref().to_string_lossy())
+        .input(input.as_ref().to_string_lossy())
         .codec_video("libx264")
-        .args(&["-filter:v", "scale=1280:-1", "-g", "30"])
-        .args(&["-profile:v", "main", "-level", "4.0"])
-        .args(&["-b:v", "1500k", "-maxrate", "1500k", "-bufsize", "2250k"])
-        .args(&[
+        .args(["-filter:v", "scale=1280:-1", "-g", "30"])
+        .args(["-profile:v", "main", "-level", "4.0"])
+        .args(["-b:v", "1500k", "-maxrate", "1500k", "-bufsize", "2250k"])
+        .args([
             "-start_number",
             "0",
             "-hls_time",
@@ -34,10 +34,10 @@ pub(crate) fn slice(
         ])
         .arg(slice_720p.join("slice.m3u8"))
         .codec_video("libx264")
-        .args(&["-filter:v", "scale=1280:-1", "-g", "30"])
-        .args(&["-profile:v", "main", "-level", "4.2"])
-        .args(&["-b:v", "3000k", "-maxrate", "3000k", "-bufsize", "4500k"])
-        .args(&[
+        .args(["-filter:v", "scale=1280:-1", "-g", "30"])
+        .args(["-profile:v", "main", "-level", "4.2"])
+        .args(["-b:v", "3000k", "-maxrate", "3000k", "-bufsize", "4500k"])
+        .args([
             "-start_number",
             "0",
             "-hls_time",

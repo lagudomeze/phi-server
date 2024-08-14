@@ -12,13 +12,13 @@ use tokio::{sync::mpsc::channel, task::spawn};
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::auth::apikey::JwtAuth;
-use crate::material::material::MaterialDetail;
+use crate::material::biz::MaterialDetail;
 use crate::util::poem::BaseUrl;
 use crate::{
     common::FormatedEvent,
     common::{Response, Result},
     material::{
-        material::MaterialsService,
+        biz::MaterialsService,
         storage::{Id, LocalStorage, Storage},
     },
 };

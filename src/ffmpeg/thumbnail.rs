@@ -40,10 +40,10 @@ pub(crate) fn thumbnail(
     let time = rand.gen_range((duration / 2)..duration) as f64;
 
     let mut child = FfmpegCommand::new_with_path(ffmpeg_path)
-        .input(&path.as_ref().to_string_lossy())
+        .input(path.as_ref().to_string_lossy())
         .seek(time.to_string())
         .frames(1)
-        .output(&image.as_ref().to_string_lossy())
+        .output(image.as_ref().to_string_lossy())
         .spawn()?;
 
     let status = child.wait()?;

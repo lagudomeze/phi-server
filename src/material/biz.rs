@@ -18,7 +18,7 @@ use crate::{
     material::storage::SavedId,
     material::{
         storage::{Id, LocalStorage, Storage},
-        upload::UploadPayload,
+        mvc::UploadPayload,
     },
 };
 
@@ -54,20 +54,21 @@ impl<'a> VideoUploadEvent<'a> {
     }
 }
 
-impl Into<FormatedEvent> for VideoUploadEvent<'_> {
-    fn into(self) -> FormatedEvent {
-        match self {
-            VideoUploadEvent::Existed { id } => FormatedEvent {
+
+impl From<VideoUploadEvent<'_>> for FormatedEvent {
+    fn from(value: VideoUploadEvent<'_>) -> Self {
+        match value {
+            VideoUploadEvent::Existed { id } => Self {
                 id: id.to_string(),
                 progress: -1,
                 state: "already_existed".to_string(),
             },
-            VideoUploadEvent::Progress { id, progress } => FormatedEvent {
+            VideoUploadEvent::Progress { id, progress } => Self {
                 id: id.to_string(),
                 progress: progress as i16,
                 state: "wip".to_string(),
             },
-            VideoUploadEvent::Ok { id } => FormatedEvent {
+            VideoUploadEvent::Ok { id } => Self {
                 id: id.to_string(),
                 progress: 100,
                 state: "ok".to_string(),
@@ -79,7 +80,7 @@ impl Into<FormatedEvent> for VideoUploadEvent<'_> {
 #[cfg(test)]
 mod test {
     use crate::common::FormatedEvent;
-    use crate::material::material::VideoUploadEvent;
+    use crate::material::biz::VideoUploadEvent;
     use crate::material::storage::Id;
     use serde_json::{json, Value};
 
@@ -261,7 +262,7 @@ impl MaterialsService {
         };
 
         let video = MaterialVideo {
-            id: Id(materials.id.into()),
+            id: Id(materials.id),
             name: materials.name.unwrap_or("".to_string()),
             raw: self.storage.url(&base_url, &id, "raw")?.to_string(),
             thumbnail: self
@@ -377,7 +378,7 @@ impl MaterialsRepo {
             "#,
         )
         .bind(id.as_ref())
-        .fetch_one(&*self.db)
+        .fetch_one(self.db)
         .await?;
 
         Ok(materials)

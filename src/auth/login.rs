@@ -127,7 +127,7 @@ impl Oauth2 {
 
         if let Some(redirect_uri) = self.redirect_uri(req) {
             url.query_pairs_mut()
-                .append_pair("redirect_uri", &*redirect_uri);
+                .append_pair("redirect_uri", &redirect_uri);
         }
 
         Ok(url)
