@@ -1,18 +1,12 @@
-use crate::{
-    ffmpeg::slice::slice,
-    ffmpeg::thumbnail::thumbnail,
-};
+use crate::{ffmpeg::slice::slice, ffmpeg::thumbnail::thumbnail};
 use ffmpeg_sidecar::{
     download::{check_latest_version, download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg},
-    version::ffmpeg_version_with_path
+    version::ffmpeg_version_with_path,
 };
 use ioc::{bean, BeanSpec, InitContext};
 use std::{
     path::{Path, PathBuf},
-    process::{
-        Command,
-        Stdio,
-    },
+    process::{Command, Stdio},
 };
 use tracing::info;
 
@@ -23,9 +17,7 @@ pub(crate) struct FFmpegUtils {
 }
 
 fn sidecar_path(sidecar_parent: impl AsRef<Path>, name: &str) -> PathBuf {
-    let mut path = sidecar_parent
-        .as_ref()
-        .join(name);
+    let mut path = sidecar_parent.as_ref().join(name);
     if cfg!(windows) {
         path.set_extension("exe");
     }
@@ -71,11 +63,11 @@ impl FFmpegUtils {
             let destination = sidecar_parent.as_path();
 
             info!("Downloading from: {:?}", download_url);
-            let archive_path = download_ffmpeg_package(download_url, &destination)?;
+            let archive_path = download_ffmpeg_package(download_url, destination)?;
             info!("Downloaded package: {:?}", archive_path);
 
             info!("Extracting to {} ...", destination.display());
-            unpack_ffmpeg(&archive_path, &destination)?;
+            unpack_ffmpeg(&archive_path, destination)?;
 
             let ffmpeg_path = path(&sidecar_parent, "ffmpeg");
             let ffprobe_path = path(&sidecar_parent, "ffprobe");
@@ -102,16 +94,29 @@ impl BeanSpec for FFmpegUtils {
 
     fn build(ctx: &mut impl InitContext) -> ioc::Result<Self::Bean> {
         let sidecar_parent = ctx.get_config::<PathBuf>("ffmpeg.sidecar_parent")?;
-        Ok(Self::init(sidecar_parent)?)
+        Self::init(sidecar_parent)
     }
 }
 
 impl FFmpegUtils {
-    pub(crate) fn slice(&self, input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> crate::common::Result<()> {
+    pub(crate) fn slice(
+        &self,
+        input: impl AsRef<Path>,
+        output_dir: impl AsRef<Path>,
+    ) -> crate::common::Result<()> {
         slice(input, output_dir, &self.ffmpeg_path)
     }
 
-    pub(crate) fn thumbnail(&self, path: impl AsRef<Path>, image: impl AsRef<Path>) -> crate::common::Result<()> {
-        thumbnail(path, image, self.ffmpeg_path.as_path(), self.ffprobe_path.as_path())
+    pub(crate) fn thumbnail(
+        &self,
+        path: impl AsRef<Path>,
+        image: impl AsRef<Path>,
+    ) -> crate::common::Result<()> {
+        thumbnail(
+            path,
+            image,
+            self.ffmpeg_path.as_path(),
+            self.ffprobe_path.as_path(),
+        )
     }
 }

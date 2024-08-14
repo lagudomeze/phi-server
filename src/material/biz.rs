@@ -3,10 +3,7 @@ use ioc::Bean;
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use std::{
-    borrow::Cow,
-    ops::Deref,
-};
+use std::{borrow::Cow, ops::Deref};
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
 use tracing::{info, warn};
 
@@ -21,7 +18,7 @@ use crate::{
     material::storage::SavedId,
     material::{
         storage::{Id, LocalStorage, Storage},
-        upload::UploadPayload,
+        mvc::UploadPayload,
     },
 };
 
@@ -38,42 +35,44 @@ pub(crate) enum VideoUploadEvent<'a> {
 
 impl<'a> VideoUploadEvent<'a> {
     pub(crate) fn existed(id: &'a Id) -> Self {
-        Self::Existed { id: Cow::Borrowed(id) }
+        Self::Existed {
+            id: Cow::Borrowed(id),
+        }
     }
 
     pub(crate) fn wip(id: &'a Id, progress: u16) -> Self {
-        Self::Progress { id: Cow::Borrowed(id), progress }
+        Self::Progress {
+            id: Cow::Borrowed(id),
+            progress,
+        }
     }
 
     pub(crate) fn ok(id: &'a Id) -> Self {
-        Self::Ok { id: Cow::Borrowed(id) }
+        Self::Ok {
+            id: Cow::Borrowed(id),
+        }
     }
 }
 
-impl Into<FormatedEvent> for VideoUploadEvent<'_> {
-    fn into(self) -> FormatedEvent {
-        match self {
-            VideoUploadEvent::Existed { id } => {
-                FormatedEvent {
-                    id: id.to_string(),
-                    progress: -1,
-                    state: "already_existed".to_string()
-                }
-            }
-            VideoUploadEvent::Progress { id, progress } => {
-                FormatedEvent {
-                    id: id.to_string(),
-                    progress: progress as i16,
-                    state: "wip".to_string()
-                }
-            }
-            VideoUploadEvent::Ok { id } => {
-                FormatedEvent {
-                    id: id.to_string(),
-                    progress: 100,
-                    state: "ok".to_string()
-                }
-            }
+
+impl From<VideoUploadEvent<'_>> for FormatedEvent {
+    fn from(value: VideoUploadEvent<'_>) -> Self {
+        match value {
+            VideoUploadEvent::Existed { id } => Self {
+                id: id.to_string(),
+                progress: -1,
+                state: "already_existed".to_string(),
+            },
+            VideoUploadEvent::Progress { id, progress } => Self {
+                id: id.to_string(),
+                progress: progress as i16,
+                state: "wip".to_string(),
+            },
+            VideoUploadEvent::Ok { id } => Self {
+                id: id.to_string(),
+                progress: 100,
+                state: "ok".to_string(),
+            },
         }
     }
 }
@@ -81,7 +80,7 @@ impl Into<FormatedEvent> for VideoUploadEvent<'_> {
 #[cfg(test)]
 mod test {
     use crate::common::FormatedEvent;
-    use crate::material::material::VideoUploadEvent;
+    use crate::material::biz::VideoUploadEvent;
     use crate::material::storage::Id;
     use serde_json::{json, Value};
 
@@ -180,7 +179,6 @@ pub(crate) struct MaterialDetail {
     video: MaterialVideo,
     #[serde(flatten)]
     slices: VideoSlices,
-
 }
 
 impl MaterialsService {
@@ -227,15 +225,9 @@ impl MaterialsService {
                 info!("save slice: {file_name} with id {id}");
                 tx.send(VideoUploadEvent::wip(&id, 75).into()).await?;
 
-                let materials = Materials::new_video(
-                    id.to_string(),
-                    file_name,
-                    upload.desc,
-                    claims.id,
-                );
-                let tags = upload.tags
-                    .as_ref()
-                    .map(|tags| tags.as_slice());
+                let materials =
+                    Materials::new_video(id.to_string(), file_name, upload.desc, claims.id);
+                let tags = upload.tags.as_ref().map(|tags| tags.as_slice());
                 self.repo.save(&materials, tags).await?;
 
                 tx.send(VideoUploadEvent::ok(&id).into()).await?;
@@ -259,31 +251,33 @@ impl MaterialsService {
 
         let slices = VideoSlices {
             slice: self.storage.url(&base_url, &id, "slice.m3u8")?.to_string(),
-            slice720p: self.storage.url(&base_url, &id, "720p/slice.m3u8")?.to_string(),
-            slice1080p: self.storage.url(&base_url, &id, "1080p/slice.m3u8")?.to_string(),
+            slice720p: self
+                .storage
+                .url(&base_url, &id, "720p/slice.m3u8")?
+                .to_string(),
+            slice1080p: self
+                .storage
+                .url(&base_url, &id, "1080p/slice.m3u8")?
+                .to_string(),
         };
 
         let video = MaterialVideo {
-            id: Id(materials.id.into()),
+            id: Id(materials.id),
             name: materials.name.unwrap_or("".to_string()),
             raw: self.storage.url(&base_url, &id, "raw")?.to_string(),
-            thumbnail: self.storage.url(&base_url, &id, "thumbnail.jpeg")?.to_string(),
+            thumbnail: self
+                .storage
+                .url(&base_url, &id, "thumbnail.jpeg")?
+                .to_string(),
             description: materials.description.unwrap_or("".to_string()),
         };
 
-        let detail = MaterialDetail {
-            slices,
-            video
-        };
+        let detail = MaterialDetail { slices, video };
 
         Ok(detail)
     }
 
-    pub(crate) async fn delete(
-        &self,
-        id: Id,
-        _claims: Claims,
-    ) -> Result<()> {
+    pub(crate) async fn delete(&self, id: Id, _claims: Claims) -> Result<()> {
         if !self.storage.exists(&id).await? {
             return Err(AppError::MaterialNotFound(id.to_string()));
         }
@@ -346,8 +340,9 @@ impl MaterialsRepo {
             materials.state,
             materials.r#type,
             materials.created_at
-        ).execute(&mut *tx)
-            .await?;
+        )
+        .execute(&mut *tx)
+        .await?;
 
         if result.rows_affected() == 0 {
             return Err(AppError::DbError("save materials failed".to_string()));
@@ -363,8 +358,9 @@ impl MaterialsRepo {
                     materials.id,
                     tag,
                     materials.created_at
-                ).execute(&mut *tx)
-                    .await?;
+                )
+                .execute(&mut *tx)
+                .await?;
             }
         }
 
@@ -379,10 +375,11 @@ impl MaterialsRepo {
             SELECT id, name, description, creator, state, type, created_at
             FROM materials
             WHERE id = ?
-            "#)
-            .bind(id.as_ref())
-            .fetch_one(&*self.db)
-            .await?;
+            "#,
+        )
+        .bind(id.as_ref())
+        .fetch_one(self.db)
+        .await?;
 
         Ok(materials)
     }
@@ -397,16 +394,18 @@ impl MaterialsRepo {
             DELETE FROM materials WHERE id = ?
             "#,
             id_str
-        ).execute(&mut *tx)
-            .await?;
+        )
+        .execute(&mut *tx)
+        .await?;
 
         sqlx::query!(
             r#"
             DELETE FROM material_tags WHERE material_id = ?
             "#,
             id_str
-        ).execute(&mut *tx)
-            .await?;
+        )
+        .execute(&mut *tx)
+        .await?;
 
         tx.commit().await?;
 

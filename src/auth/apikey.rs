@@ -1,11 +1,8 @@
-use std::ops::Deref;
-use ioc::BeanSpec;
 use crate::auth::jwt::{Claims, JwtService};
+use ioc::BeanSpec;
 use poem::Request;
-use poem_openapi::{
-    auth::ApiKey,
-    SecurityScheme
-};
+use poem_openapi::{auth::ApiKey, SecurityScheme};
+use std::ops::Deref;
 
 #[derive(SecurityScheme)]
 #[oai(
@@ -24,9 +21,9 @@ impl Deref for JwtAuth {
     }
 }
 
-impl Into<Claims> for JwtAuth {
-    fn into(self) -> Claims {
-        self.0
+impl From<JwtAuth> for Claims {
+    fn from(value: JwtAuth) -> Self {
+        value.0
     }
 }
 

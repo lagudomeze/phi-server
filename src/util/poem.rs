@@ -11,9 +11,7 @@ pub(crate) struct BaseUrl {
 
 fn from(proto: &str) -> Option<Scheme> {
     match Scheme::from_str(proto) {
-        Ok(scheme) => {
-            Some(scheme)
-        }
+        Ok(scheme) => Some(scheme),
         Err(e) => {
             warn!("parse scheme {proto} failed: {e}");
             None
@@ -23,9 +21,7 @@ fn from(proto: &str) -> Option<Scheme> {
 
 impl<'a> FromRequest<'a> for BaseUrl {
     async fn from_request(req: &'a Request, _: &mut RequestBody) -> poem::Result<Self> {
-        let option = req
-            .header("X-Forwarded-Proto")
-            .and_then(from);
+        let option = req.header("X-Forwarded-Proto").and_then(from);
 
         let scheme = option.as_ref().unwrap_or(req.scheme());
 
@@ -36,9 +32,7 @@ impl<'a> FromRequest<'a> for BaseUrl {
             format!("{scheme}://{host}")
         };
 
-        Ok(BaseUrl {
-            base_url
-        })
+        Ok(BaseUrl { base_url })
     }
 }
 

@@ -1,11 +1,15 @@
-use std::{fs, path::Path};
-use std::ffi::OsStr;
 use ffmpeg_sidecar::command::FfmpegCommand;
+use std::ffi::OsStr;
+use std::{fs, path::Path};
 use tracing::debug;
 
 use crate::common::Result;
 
-pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>, ffmpeg_path: impl AsRef<OsStr>) -> Result<()> {
+pub(crate) fn slice(
+    input: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+    ffmpeg_path: impl AsRef<OsStr>,
+) -> Result<()> {
     let slice_720p = output_dir.as_ref().join("720p");
     fs::create_dir_all(&slice_720p)?;
 
@@ -13,12 +17,12 @@ pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>, ffmpe
     fs::create_dir_all(&slice_1080p)?;
 
     let mut child = FfmpegCommand::new_with_path(ffmpeg_path)
-        .input(&input.as_ref().to_string_lossy())
+        .input(input.as_ref().to_string_lossy())
         .codec_video("libx264")
-        .args(&["-filter:v", "scale=1280:-1", "-g", "30"])
-        .args(&["-profile:v", "main", "-level", "4.0"])
-        .args(&["-b:v", "1500k", "-maxrate", "1500k", "-bufsize", "2250k"])
-        .args(&[
+        .args(["-filter:v", "scale=1280:-1", "-g", "30"])
+        .args(["-profile:v", "main", "-level", "4.0"])
+        .args(["-b:v", "1500k", "-maxrate", "1500k", "-bufsize", "2250k"])
+        .args([
             "-start_number",
             "0",
             "-hls_time",
@@ -30,10 +34,10 @@ pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>, ffmpe
         ])
         .arg(slice_720p.join("slice.m3u8"))
         .codec_video("libx264")
-        .args(&["-filter:v", "scale=1280:-1", "-g", "30"])
-        .args(&["-profile:v", "main", "-level", "4.2"])
-        .args(&["-b:v", "3000k", "-maxrate", "3000k", "-bufsize", "4500k"])
-        .args(&[
+        .args(["-filter:v", "scale=1280:-1", "-g", "30"])
+        .args(["-profile:v", "main", "-level", "4.2"])
+        .args(["-b:v", "3000k", "-maxrate", "3000k", "-bufsize", "4500k"])
+        .args([
             "-start_number",
             "0",
             "-hls_time",
@@ -74,7 +78,7 @@ mod tests {
     use super::*;
     use ffmpeg_sidecar::{
         download::{auto_download, ffmpeg_download_url},
-        paths::ffmpeg_path
+        paths::ffmpeg_path,
     };
 
     #[test]

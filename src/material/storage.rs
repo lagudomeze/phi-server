@@ -1,18 +1,15 @@
-use std::fmt::{Display, Formatter};
-use std::{
-    fs::{
-        create_dir_all,
-        remove_file as std_remove_file
-    },
-    ops::Deref,
-    path::{Path, PathBuf},
-};
 use anyhow::anyhow;
 use base64ct::{Base64, Encoding};
 use ioc::Bean;
 use poem_openapi::NewType;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::fmt::{Display, Formatter};
+use std::{
+    fs::{create_dir_all, remove_file as std_remove_file},
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 use tokio::{
     fs::{remove_file, rename, try_exists, File as TokioFile},
     io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
@@ -52,9 +49,9 @@ pub(crate) enum SavedId {
     New(Id),
 }
 
-impl Into<Id> for SavedId {
-    fn into(self) -> Id {
-        match self {
+impl From<SavedId> for Id {
+    fn from(value: SavedId) -> Self {
+        match value {
             SavedId::Existed(id) => id,
             SavedId::New(id) => id,
         }
@@ -89,7 +86,7 @@ struct TmpFile {
 
 impl TmpFile {
     async fn new(dir: impl AsRef<Path>) -> Result<(Self, TokioFile)> {
-        let path = dir.as_ref().join(&format!("{}.tmp", Uuid::new_v4()));
+        let path = dir.as_ref().join(format!("{}.tmp", Uuid::new_v4()));
         let file = TokioFile::create(&path).await?;
         Ok((Self { path }, file))
     }
@@ -187,12 +184,8 @@ impl Storage for LocalStorage {
         }
     }
 
-    fn url(&self,
-           base_url: &BaseUrl,
-           id: &Id,
-           path: impl AsRef<str>) -> Result<Url> {
-        let mut url = base_url
-            .join(self.uri_path.as_str())?;
+    fn url(&self, base_url: &BaseUrl, id: &Id, path: impl AsRef<str>) -> Result<Url> {
+        let mut url = base_url.join(self.uri_path.as_str())?;
         url.path_segments_mut()
             .map_err(|_| AppError::Other(anyhow!("invalid base url:{}", self.uri_path)))?
             .push(id.as_ref())

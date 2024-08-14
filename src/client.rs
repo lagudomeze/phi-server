@@ -1,8 +1,8 @@
-use std::panic::Location;
+use crate::common::LocationContext;
 use http::HeaderValue;
 use ioc::{bean, BeanSpec, InitContext};
-use reqwest::header::{ACCEPT, HeaderMap};
-use crate::common::LocationContext;
+use reqwest::header::{HeaderMap, ACCEPT};
+use std::panic::Location;
 
 pub(crate) struct HttpClient {
     client: reqwest::Client,
@@ -20,7 +20,10 @@ impl BeanSpec for HttpClient {
 
     fn build(_: &mut impl InitContext) -> ioc::Result<Self::Bean> {
         let mut headers = HeaderMap::new();
-        headers.insert(reqwest::header::USER_AGENT, HeaderValue::from_static("phi_server"));
+        headers.insert(
+            reqwest::header::USER_AGENT,
+            HeaderValue::from_static("phi_server"),
+        );
         headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
         let client = reqwest::Client::builder()
@@ -28,8 +31,6 @@ impl BeanSpec for HttpClient {
             .build()
             .location("build http client", Location::caller())?;
 
-        Ok(Self::Bean {
-            client,
-        })
+        Ok(Self::Bean { client })
     }
 }

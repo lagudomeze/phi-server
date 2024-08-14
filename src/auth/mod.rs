@@ -1,4 +1,4 @@
+pub mod apikey;
+pub mod jwt;
 pub mod login;
 pub mod user;
-pub mod jwt;
-pub mod apikey;

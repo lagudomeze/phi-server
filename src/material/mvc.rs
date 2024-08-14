@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use ioc::{mvc, Bean, OpenApi};
 use poem::web::Field;
 use poem_openapi::{
@@ -8,20 +7,21 @@ use poem_openapi::{
     types::{multipart::Upload, ParseFromMultipartField, ParseResult},
     Multipart, NewType,
 };
+use std::ops::Deref;
 use tokio::{sync::mpsc::channel, task::spawn};
 use tokio_stream::wrappers::ReceiverStream;
 
+use crate::auth::apikey::JwtAuth;
+use crate::material::biz::MaterialDetail;
+use crate::util::poem::BaseUrl;
 use crate::{
     common::FormatedEvent,
     common::{Response, Result},
     material::{
-        material::MaterialsService,
+        biz::MaterialsService,
         storage::{Id, LocalStorage, Storage},
     },
 };
-use crate::auth::apikey::JwtAuth;
-use crate::material::material::MaterialDetail;
-use crate::util::poem::BaseUrl;
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
@@ -89,8 +89,16 @@ impl UploadMvc {
     }
 
     #[oai(path = "/materials/:id", method = "get")]
-    async fn detail(&self, id: Path<Id>, base_url: BaseUrl, auth: JwtAuth) -> Result<Response<MaterialDetail>> {
-        let detail = self.materials_svc.detail(id.0, base_url, auth.into()).await?;
+    async fn detail(
+        &self,
+        id: Path<Id>,
+        base_url: BaseUrl,
+        auth: JwtAuth,
+    ) -> Result<Response<MaterialDetail>> {
+        let detail = self
+            .materials_svc
+            .detail(id.0, base_url, auth.into())
+            .await?;
         Ok(Response::ok(detail))
     }
 
@@ -102,7 +110,11 @@ impl UploadMvc {
 
     /// Upload file
     #[oai(path = "/materials/video", method = "post")]
-    async fn upload(&self, upload: UploadPayload, auth: JwtAuth) -> EventStream<ReceiverStream<FormatedEvent>> {
+    async fn upload(
+        &self,
+        upload: UploadPayload,
+        auth: JwtAuth,
+    ) -> EventStream<ReceiverStream<FormatedEvent>> {
         let (tx, rx) = channel(32);
 
         let _detached = spawn(self.materials_svc.upload(upload, tx, auth.into()));
