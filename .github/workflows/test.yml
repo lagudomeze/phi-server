@@ -33,8 +33,8 @@ jobs:
       - name: "Install clippy and rustfmt"
         run: rustup component add clippy rustfmt
       - name: "Run rustfmt"
-        run: cargo clippy -- -D warnings
+        run: cargo fmt
       - name: "Run clippy"
-        run: cargo clippy
+        run: cargo clippy --no-deps -- -D warnings
       - name: "Run test"
         run: cargo test --verbose
