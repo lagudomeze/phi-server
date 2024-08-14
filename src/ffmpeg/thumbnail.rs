@@ -5,6 +5,7 @@ use std::{ffi::OsStr, path::Path, process::Command};
 use crate::common::Result;
 
 fn duration(path: impl AsRef<Path>, ffprobe: impl AsRef<OsStr>) -> Result<f64> {
+    println!("haha:{:?}, {:?}", path.as_ref(), ffprobe.as_ref());
     let output = dbg!(Command::new(ffprobe)
         .arg("-v")
         .arg("error")
@@ -35,6 +36,7 @@ pub(crate) fn thumbnail(
 ) -> Result<()> {
     let duration = duration(path.as_ref(), ffprobe_path)? as u64;
 
+
     let mut rand = thread_rng();
 
     let time = rand.gen_range((duration / 2)..duration) as f64;
@@ -59,7 +61,9 @@ pub(crate) fn thumbnail(
 mod tests {
     use super::*;
     use ffmpeg_sidecar::{
-        download::auto_download, ffprobe::ffprobe_sidecar_path, paths::ffmpeg_path,
+        ffprobe::ffprobe_path,
+        download::auto_download,
+        paths::ffmpeg_path
     };
 
     #[test]
@@ -69,7 +73,7 @@ mod tests {
         let time = std::time::Instant::now();
 
         let ffmpeg = ffmpeg_path();
-        let ffprobe = ffprobe_sidecar_path().unwrap();
+        let ffprobe = ffprobe_path();
         thumbnail("./video_01.mp4", "1.jpeg", &ffmpeg, &ffprobe).expect("");
 
         dbg!(time.elapsed());
