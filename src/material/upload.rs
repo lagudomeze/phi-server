@@ -20,6 +20,8 @@ use crate::{
     },
 };
 use crate::auth::apikey::JwtAuth;
+use crate::material::material::MaterialDetail;
+use crate::util::poem::BaseUrl;
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
@@ -87,8 +89,9 @@ impl UploadMvc {
     }
 
     #[oai(path = "/materials/:id", method = "get")]
-    async fn detail(&self, id: Path<Id>, _auth: JwtAuth) -> Result<Json<Id>> {
-        Ok(Json(id.0))
+    async fn detail(&self, id: Path<Id>, base_url: BaseUrl, auth: JwtAuth) -> Result<Response<MaterialDetail>> {
+        let detail = self.materials_svc.detail(id.0, base_url, auth.into()).await?;
+        Ok(Response::ok(detail))
     }
 
     #[oai(path = "/materials/:id", method = "delete")]

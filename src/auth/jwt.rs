@@ -118,8 +118,7 @@ impl JwtService {
     }
 
     pub(crate) fn decode(&self, token: &str) -> Result<Claims> {
-        let mut validation = Validation::new(Algorithm::EdDSA);
-        validation.reject_tokens_expiring_in_less_than = self.expire_secs;
+        let validation = Validation::new(Algorithm::EdDSA);
         let result = decode::<Claims>(token, &self.keys.decoding, &validation)?;
         Ok(result.claims)
     }

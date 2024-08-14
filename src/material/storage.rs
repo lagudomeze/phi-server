@@ -7,7 +7,7 @@ use std::{
     ops::Deref,
     path::{Path, PathBuf},
 };
-
+use anyhow::anyhow;
 use base64ct::{Base64, Encoding};
 use ioc::Bean;
 use poem_openapi::NewType;
@@ -18,12 +18,20 @@ use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
 };
 use tracing::{error, warn};
+use url::Url;
 use uuid::Uuid;
 
 use crate::common::{AppError, Result};
+use crate::util::poem::BaseUrl;
 
 #[derive(NewType, Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Id(pub(crate) String);
+
+impl AsRef<str> for Id {
+    fn as_ref(&self) -> &str {
+        self.0.as_str()
+    }
+}
 
 impl Display for Id {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -63,12 +71,16 @@ pub(crate) trait Storage {
     async fn assert_file(&self, id: &Id, path: impl AsRef<Path>) -> Result<PathBuf>;
 
     async fn save(&self, source: impl AsyncRead + Unpin) -> Result<SavedId>;
+
+    fn url(&self, base_url: &BaseUrl, id: &Id, path: impl AsRef<str>) -> Result<Url>;
 }
 
 #[derive(Bean)]
 pub(crate) struct LocalStorage {
     #[inject(config = "web.static.mapping.storage.dir")]
     dir: PathBuf,
+    #[inject(config = "web.static.mapping.storage.path")]
+    uri_path: String,
 }
 
 struct TmpFile {
@@ -173,5 +185,18 @@ impl Storage for LocalStorage {
             move_guard.move_to(target).await?;
             Ok(SavedId::New(id))
         }
+    }
+
+    fn url(&self,
+           base_url: &BaseUrl,
+           id: &Id,
+           path: impl AsRef<str>) -> Result<Url> {
+        let mut url = base_url
+            .join(self.uri_path.as_str())?;
+        url.path_segments_mut()
+            .map_err(|_| AppError::Other(anyhow!("invalid base url:{}", self.uri_path)))?
+            .push(id.as_ref())
+            .push(path.as_ref());
+        Ok(url)
     }
 }

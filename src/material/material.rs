@@ -3,8 +3,10 @@ use ioc::Bean;
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use std::borrow::Cow;
-use std::ops::Deref;
+use std::{
+    borrow::Cow,
+    ops::Deref,
+};
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
 use tracing::{info, warn};
 
@@ -12,6 +14,7 @@ use crate::auth::jwt::Claims;
 use crate::common::{AppError, FormatedEvent};
 use crate::ffmpeg::common::FFmpegUtils;
 use crate::material::{STATE_OK, TYPE_VIDEO};
+use crate::util::poem::BaseUrl;
 use crate::{
     common::Result,
     db::Db,
@@ -156,6 +159,30 @@ pub(crate) struct MaterialsService {
     ffmpeg: &'static FFmpegUtils,
 }
 
+#[derive(Serialize, Deserialize, Debug, Object)]
+pub(crate) struct MaterialVideo {
+    id: Id,
+    name: String,
+    raw: String,
+    thumbnail: String,
+    description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Object)]
+pub(crate) struct VideoSlices {
+    slice: String,
+    slice720p: String,
+    slice1080p: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Object)]
+pub(crate) struct MaterialDetail {
+    video: MaterialVideo,
+    #[serde(flatten)]
+    slices: VideoSlices,
+
+}
+
 impl MaterialsService {
     pub(crate) async fn upload(
         &self,
@@ -203,7 +230,7 @@ impl MaterialsService {
                 let materials = Materials::new_video(
                     id.to_string(),
                     file_name,
-                    upload.desc.unwrap_or("".to_string()),
+                    upload.desc,
                     claims.id,
                 );
                 let tags = upload.tags
@@ -217,7 +244,41 @@ impl MaterialsService {
 
         Ok(())
     }
-    
+
+    pub(crate) async fn detail(
+        &self,
+        id: Id,
+        base_url: BaseUrl,
+        _claims: Claims,
+    ) -> Result<MaterialDetail> {
+        if !self.storage.exists(&id).await? {
+            return Err(AppError::MaterialNotFound(id.to_string()));
+        }
+
+        let materials = self.repo.get(&id).await?;
+
+        let slices = VideoSlices {
+            slice: self.storage.url(&base_url, &id, "slice.m3u8")?.to_string(),
+            slice720p: self.storage.url(&base_url, &id, "720p/slice.m3u8")?.to_string(),
+            slice1080p: self.storage.url(&base_url, &id, "1080p/slice.m3u8")?.to_string(),
+        };
+
+        let video = MaterialVideo {
+            id: Id(materials.id.into()),
+            name: materials.name.unwrap_or("".to_string()),
+            raw: self.storage.url(&base_url, &id, "raw")?.to_string(),
+            thumbnail: self.storage.url(&base_url, &id, "thumbnail.jpeg")?.to_string(),
+            description: materials.description.unwrap_or("".to_string()),
+        };
+
+        let detail = MaterialDetail {
+            slices,
+            video
+        };
+
+        Ok(detail)
+    }
+
     pub(crate) async fn delete(
         &self,
         id: Id,
@@ -242,11 +303,11 @@ pub struct MaterialsRepo {
 #[derive(sqlx::FromRow, Serialize, Deserialize, Debug, Object)]
 pub(crate) struct Materials {
     id: String,
-    name: String,
-    description: String,
+    name: Option<String>,
+    description: Option<String>,
     creator: String,
-    state: u16,
-    r#type: u16,
+    state: i64,
+    r#type: i64,
     created_at: NaiveDateTime,
 }
 
@@ -254,16 +315,16 @@ impl Materials {
     pub(crate) fn new_video(
         id: String,
         name: String,
-        description: String,
+        description: Option<String>,
         creator: String,
     ) -> Self {
         Self {
             id,
-            name,
+            name: Some(name),
             description,
             creator,
-            state: STATE_OK,
-            r#type: TYPE_VIDEO,
+            state: STATE_OK as i64,
+            r#type: TYPE_VIDEO as i64,
             created_at: Utc::now().naive_utc(),
         }
     }
@@ -310,6 +371,20 @@ impl MaterialsRepo {
         tx.commit().await?;
 
         Ok(())
+    }
+
+    async fn get(&self, id: &Id) -> Result<Materials> {
+        let materials = sqlx::query_as(
+            r#"
+            SELECT id, name, description, creator, state, type, created_at
+            FROM materials
+            WHERE id = ?
+            "#)
+            .bind(id.as_ref())
+            .fetch_one(&*self.db)
+            .await?;
+
+        Ok(materials)
     }
 
     async fn delete(&self, id: &Id) -> Result<()> {
