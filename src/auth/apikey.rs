@@ -1,11 +1,8 @@
-use std::ops::Deref;
-use ioc::BeanSpec;
 use crate::auth::jwt::{Claims, JwtService};
+use ioc::BeanSpec;
 use poem::Request;
-use poem_openapi::{
-    auth::ApiKey,
-    SecurityScheme
-};
+use poem_openapi::{auth::ApiKey, SecurityScheme};
+use std::ops::Deref;
 
 #[derive(SecurityScheme)]
 #[oai(

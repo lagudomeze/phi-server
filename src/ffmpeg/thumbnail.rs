@@ -1,10 +1,6 @@
 use ffmpeg_sidecar::command::FfmpegCommand;
 use rand::{thread_rng, Rng};
-use std::{
-    ffi::OsStr,
-    path::Path,
-    process::Command
-};
+use std::{ffi::OsStr, path::Path, process::Command};
 
 use crate::common::Result;
 
@@ -31,7 +27,12 @@ fn duration(path: impl AsRef<Path>, ffprobe: impl AsRef<OsStr>) -> Result<f64> {
     }
 }
 
-pub(crate) fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>, ffmpeg_path: &Path, ffprobe_path: &Path) -> Result<()> {
+pub(crate) fn thumbnail(
+    path: impl AsRef<Path>,
+    image: impl AsRef<Path>,
+    ffmpeg_path: &Path,
+    ffprobe_path: &Path,
+) -> Result<()> {
     let duration = duration(path.as_ref(), ffprobe_path)? as u64;
 
     let mut rand = thread_rng();
@@ -56,12 +57,10 @@ pub(crate) fn thumbnail(path: impl AsRef<Path>, image: impl AsRef<Path>, ffmpeg_
 
 #[cfg(test)]
 mod tests {
-    use ffmpeg_sidecar::{
-        download::auto_download,
-        ffprobe::ffprobe_sidecar_path,
-        paths::ffmpeg_path
-    };
     use super::*;
+    use ffmpeg_sidecar::{
+        download::auto_download, ffprobe::ffprobe_sidecar_path, paths::ffmpeg_path,
+    };
 
     #[test]
     fn test_thumbnail() {

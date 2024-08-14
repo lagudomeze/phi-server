@@ -1,6 +1,6 @@
+pub mod material;
 pub mod storage;
 pub mod upload;
-pub mod material;
 
 pub const TYPE_VIDEO: u16 = 1;
 

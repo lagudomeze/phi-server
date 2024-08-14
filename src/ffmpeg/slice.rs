@@ -1,11 +1,15 @@
-use std::{fs, path::Path};
-use std::ffi::OsStr;
 use ffmpeg_sidecar::command::FfmpegCommand;
+use std::ffi::OsStr;
+use std::{fs, path::Path};
 use tracing::debug;
 
 use crate::common::Result;
 
-pub(crate) fn slice(input: impl AsRef<Path>, output_dir: impl AsRef<Path>, ffmpeg_path: impl AsRef<OsStr>) -> Result<()> {
+pub(crate) fn slice(
+    input: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+    ffmpeg_path: impl AsRef<OsStr>,
+) -> Result<()> {
     let slice_720p = output_dir.as_ref().join("720p");
     fs::create_dir_all(&slice_720p)?;
 
@@ -74,7 +78,7 @@ mod tests {
     use super::*;
     use ffmpeg_sidecar::{
         download::{auto_download, ffmpeg_download_url},
-        paths::ffmpeg_path
+        paths::ffmpeg_path,
     };
 
     #[test]

@@ -5,12 +5,11 @@ use std::{
 };
 
 use ioc::{bean, BeanSpec, InitContext};
-use jsonwebtoken::{Algorithm, decode, DecodingKey, encode, EncodingKey, get_current_timestamp, Header, Validation};
-use ring::{
-    rand::SystemRandom,
-    signature::Ed25519KeyPair,
+use jsonwebtoken::{
+    decode, encode, get_current_timestamp, Algorithm, DecodingKey, EncodingKey, Header, Validation,
 };
 use ring::signature::KeyPair;
+use ring::{rand::SystemRandom, signature::Ed25519KeyPair};
 use serde::{Deserialize, Serialize};
 
 use crate::common::Result;
@@ -21,19 +20,15 @@ struct Keys {
 }
 
 impl Keys {
-    fn from(secret: &[u8] ) -> ioc::Result<Self> {
+    fn from(secret: &[u8]) -> ioc::Result<Self> {
         let encoding = EncodingKey::from_ed_der(secret);
 
-        let pair = Ed25519KeyPair::from_pkcs8(secret).map_err(|err| {
-            ioc::IocError::Other(err.into())
-        })?;
+        let pair =
+            Ed25519KeyPair::from_pkcs8(secret).map_err(|err| ioc::IocError::Other(err.into()))?;
 
         let decoding = DecodingKey::from_ed_der(pair.public_key().as_ref());
 
-        Ok(Self {
-            encoding,
-            decoding,
-        })
+        Ok(Self { encoding, decoding })
     }
 
     fn new(document_path: impl AsRef<Path>) -> ioc::Result<Self> {
@@ -42,9 +37,7 @@ impl Keys {
             Self::from(&bytes)?
         } else {
             let document = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
-                .map_err(|err| {
-                    ioc::IocError::Other(err.into())
-                })?;
+                .map_err(|err| ioc::IocError::Other(err.into()))?;
             if let Some(parent) = document_path.as_ref().parent() {
                 create_dir_all(parent)?;
             }
@@ -96,10 +89,7 @@ impl BeanSpec for JwtService {
 
         let expire_secs = ctx.get_config::<u64>("jwt.expire_seconds")?;
 
-        Ok(JwtService {
-            keys,
-            expire_secs,
-        })
+        Ok(JwtService { keys, expire_secs })
     }
 }
 
@@ -113,8 +103,7 @@ impl JwtService {
     }
 
     pub(crate) fn encode(&self, claims: &Claims) -> Result<String> {
-        encode(&Header::new(Algorithm::EdDSA), claims, &self.keys.encoding)
-            .map_err(Into::into)
+        encode(&Header::new(Algorithm::EdDSA), claims, &self.keys.encoding).map_err(Into::into)
     }
 
     pub(crate) fn decode(&self, token: &str) -> Result<Claims> {

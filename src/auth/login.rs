@@ -1,34 +1,19 @@
+use crate::auth::user::NewUser;
+use crate::{
+    auth::{jwt::JwtService, user::UserService},
+    client::HttpClient,
+    common::{self, LocationContext, PhiTags},
+};
 use cfg_rs::impl_enum;
 use http::uri::Scheme;
 use ioc::{mvc, Bean};
 use poem::Request;
-use poem_openapi::{
-    param::Query,
-    Object,
-    OpenApi
-};
+use poem_openapi::{param::Query, Object, OpenApi};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use std::{
-    borrow::Cow,
-    panic::Location,
-    str::FromStr
-};
+use std::{borrow::Cow, panic::Location, str::FromStr};
 use tracing::info;
 use tracing::log::warn;
-use crate::{
-    auth::{
-        jwt::JwtService,
-        user::UserService,
-    },
-    client::HttpClient,
-    common::{
-        self,
-        LocationContext,
-        PhiTags
-    },
-};
-use crate::auth::user::NewUser;
 
 enum RedirectPolicy {
     Safe,
@@ -67,7 +52,7 @@ pub struct Oauth2 {
     #[inject(config = "oauth.redirect_policy")]
     redirect_policy: RedirectPolicy,
     #[inject(config = "oauth.redirect_url")]
-    redirect_url: String
+    redirect_url: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -107,7 +92,8 @@ impl Oauth2 {
         match self.redirect_policy {
             RedirectPolicy::Safe => None,
             RedirectPolicy::Auto => {
-                let scheme = req.header("X-Forwarded-Proto")
+                let scheme = req
+                    .header("X-Forwarded-Proto")
                     .and_then(|proto| {
                         Scheme::from_str(proto)
                             .map(Cow::Owned)
@@ -118,11 +104,14 @@ impl Oauth2 {
                     })
                     .unwrap_or(Cow::Borrowed(req.scheme()));
 
-                let host = req.header("Host")
+                let host = req
+                    .header("Host")
                     .map(Cow::Borrowed)
                     .unwrap_or_else(|| Cow::Owned(req.local_addr().to_string()));
 
-                Some(Cow::Owned(format!("{scheme}://{host}/api/auth/oauth2_login")))
+                Some(Cow::Owned(format!(
+                    "{scheme}://{host}/api/auth/oauth2_login"
+                )))
             }
             RedirectPolicy::Manual => Some(Cow::Borrowed(&self.redirect_url)),
         }
@@ -137,7 +126,8 @@ impl Oauth2 {
             .append_pair("response_type", "code");
 
         if let Some(redirect_uri) = self.redirect_uri(req) {
-            url.query_pairs_mut().append_pair("redirect_uri", &*redirect_uri);
+            url.query_pairs_mut()
+                .append_pair("redirect_uri", &*redirect_uri);
         }
 
         Ok(url)
@@ -163,7 +153,8 @@ impl Oauth2 {
             .await
             .location("get access_token parse json failed", Location::caller())?;
 
-        let user = client.get("https://api.github.com/user")
+        let user = client
+            .get("https://api.github.com/user")
             .bearer_auth(result.access_token)
             .send()
             .await
@@ -175,7 +166,7 @@ impl Oauth2 {
         let user_id = user.user_id();
         let name = user.name();
         if !self.service.exists_by_id(&user_id).await? {
-            let new_user  = NewUser::new(user_id.as_ref(), name.as_ref(), &user.email);
+            let new_user = NewUser::new(user_id.as_ref(), name.as_ref(), &user.email);
             self.service.create_user(new_user).await?;
             info!("user:{} id:{} created", name, user_id);
         }
@@ -208,7 +199,10 @@ impl LoginMvc {
     }
 
     #[oai(path = "/oauth2_login", method = "get")]
-    async fn login_by_github_code(&self, code: Query<String>) -> common::Result<common::Response<LoginResult>> {
+    async fn login_by_github_code(
+        &self,
+        code: Query<String>,
+    ) -> common::Result<common::Response<LoginResult>> {
         let token = self
             .oauth
             .login_by_github_code(&code.0)

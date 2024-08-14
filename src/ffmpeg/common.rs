@@ -1,18 +1,12 @@
-use crate::{
-    ffmpeg::slice::slice,
-    ffmpeg::thumbnail::thumbnail,
-};
+use crate::{ffmpeg::slice::slice, ffmpeg::thumbnail::thumbnail};
 use ffmpeg_sidecar::{
     download::{check_latest_version, download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg},
-    version::ffmpeg_version_with_path
+    version::ffmpeg_version_with_path,
 };
 use ioc::{bean, BeanSpec, InitContext};
 use std::{
     path::{Path, PathBuf},
-    process::{
-        Command,
-        Stdio,
-    },
+    process::{Command, Stdio},
 };
 use tracing::info;
 
@@ -23,9 +17,7 @@ pub(crate) struct FFmpegUtils {
 }
 
 fn sidecar_path(sidecar_parent: impl AsRef<Path>, name: &str) -> PathBuf {
-    let mut path = sidecar_parent
-        .as_ref()
-        .join(name);
+    let mut path = sidecar_parent.as_ref().join(name);
     if cfg!(windows) {
         path.set_extension("exe");
     }
@@ -107,11 +99,24 @@ impl BeanSpec for FFmpegUtils {
 }
 
 impl FFmpegUtils {
-    pub(crate) fn slice(&self, input: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> crate::common::Result<()> {
+    pub(crate) fn slice(
+        &self,
+        input: impl AsRef<Path>,
+        output_dir: impl AsRef<Path>,
+    ) -> crate::common::Result<()> {
         slice(input, output_dir, &self.ffmpeg_path)
     }
 
-    pub(crate) fn thumbnail(&self, path: impl AsRef<Path>, image: impl AsRef<Path>) -> crate::common::Result<()> {
-        thumbnail(path, image, self.ffmpeg_path.as_path(), self.ffprobe_path.as_path())
+    pub(crate) fn thumbnail(
+        &self,
+        path: impl AsRef<Path>,
+        image: impl AsRef<Path>,
+    ) -> crate::common::Result<()> {
+        thumbnail(
+            path,
+            image,
+            self.ffmpeg_path.as_path(),
+            self.ffprobe_path.as_path(),
+        )
     }
 }

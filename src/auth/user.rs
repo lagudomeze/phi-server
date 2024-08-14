@@ -1,9 +1,9 @@
-use std::borrow::Cow;
 use chrono::NaiveDateTime;
-use ioc::{Bean, mvc};
+use ioc::{mvc, Bean};
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
+use std::borrow::Cow;
 
 use crate::common::Response;
 use crate::db::Db;
@@ -41,9 +41,11 @@ pub(crate) struct NewUser<'a> {
 }
 
 impl<'a> NewUser<'a> {
-    pub fn new(id: impl Into<Cow<'a, str>>,
-               name: impl Into<Cow<'a, str>>,
-               source: impl Into<Cow<'a, str>>) -> Self {
+    pub fn new(
+        id: impl Into<Cow<'a, str>>,
+        name: impl Into<Cow<'a, str>>,
+        source: impl Into<Cow<'a, str>>,
+    ) -> Self {
         Self {
             id: id.into(),
             name: name.into(),
@@ -69,13 +71,15 @@ impl UserService {
     pub(crate) async fn create_user(&self, new_user: NewUser<'_>) -> Result<(), sqlx::Error> {
         let now = chrono::Utc::now();
         let native_utc = now.naive_utc();
-        sqlx::query!("INSERT INTO users (id, name, source, created_at) VALUES (?1, ?2, ?3, ?4)",
-                new_user.id,
-                new_user.name,
-                new_user.source,
-                native_utc
-            ).execute(self.db)
-            .await
-            .map(|_| ())
+        sqlx::query!(
+            "INSERT INTO users (id, name, source, created_at) VALUES (?1, ?2, ?3, ?4)",
+            new_user.id,
+            new_user.name,
+            new_user.source,
+            native_utc
+        )
+        .execute(self.db)
+        .await
+        .map(|_| ())
     }
 }
