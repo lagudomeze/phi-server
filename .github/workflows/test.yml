@@ -35,6 +35,6 @@ jobs:
       - name: "Run rustfmt"
         run: cargo fmt
       - name: "Run clippy"
-        run: cargo clippy --no-deps -- -D warnings
+        run: cargo clippy -- -D warnings --no-deps
       - name: "Run test"
         run: cargo test --verbose
