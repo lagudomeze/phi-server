@@ -1,6 +1,6 @@
 pub mod biz;
-pub mod storage;
 pub mod mvc;
+pub mod storage;
 
 pub const TYPE_VIDEO: u16 = 1;
 
