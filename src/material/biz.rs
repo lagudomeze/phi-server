@@ -273,7 +273,7 @@ impl MaterialsService {
                 .to_string(),
         };
 
-        let raw = self.storage.url(&base_url, &id, "raw")?.to_string();
+        let raw = self.storage.url(base_url, &id, "raw")?.to_string();
 
         let thumbnail = self
             .storage
