@@ -185,7 +185,7 @@ impl MaterialsService {
         claims: Claims,
     ) -> Result<PageResult<MaterialDetail>> {
         let result = self.repo.search(&condition, &claims.id).await?;
-        Ok(result.transfer(|material| self.transfer(&base_url, material))?)
+        result.transfer(|material| self.transfer(&base_url, material))
     }
 
     pub(crate) async fn upload(
@@ -255,21 +255,21 @@ impl MaterialsService {
 
         let material = self.repo.get(&id).await?;
 
-        Ok(self.transfer(&base_url, material)?)
+        self.transfer(&base_url, material)
     }
 
     fn transfer(&self, base_url: &BaseUrl, material: Material) -> Result<MaterialDetail> {
         let id = Id(material.id);
 
         let slices = VideoSlices {
-            slice: self.storage.url(&base_url, &id, "slice.m3u8")?.to_string(),
+            slice: self.storage.url(base_url, &id, "slice.m3u8")?.to_string(),
             slice720p: self
                 .storage
-                .url(&base_url, &id, "720p/slice.m3u8")?
+                .url(base_url, &id, "720p/slice.m3u8")?
                 .to_string(),
             slice1080p: self
                 .storage
-                .url(&base_url, &id, "1080p/slice.m3u8")?
+                .url(base_url, &id, "1080p/slice.m3u8")?
                 .to_string(),
         };
 
@@ -277,7 +277,7 @@ impl MaterialsService {
 
         let thumbnail = self
             .storage
-            .url(&base_url, &id, "thumbnail.jpeg")?
+            .url(base_url, &id, "thumbnail.jpeg")?
             .to_string();
 
         let video = MaterialVideo {
