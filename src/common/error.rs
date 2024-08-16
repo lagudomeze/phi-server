@@ -1,40 +1,24 @@
+use crate::common::FormatedEvent;
 use anyhow::Context;
-use poem::{error::ResponseError, http::StatusCode, Body, Error, Response as PoemResponse};
+use http::StatusCode;
+use poem::{error::ResponseError, Body, Error, Response as PoemResponse};
 use poem_openapi::{
-    payload::Json,
     registry::{MetaResponses, Registry},
-    types::{ParseFromJSON, ToJSON, Type},
-    ApiResponse, Object, Tags,
+    ApiResponse,
 };
-use serde::{Deserialize, Serialize};
-use std::{fmt::Display, io, panic::Location};
+use serde::de::StdError;
+use std::fmt::Display;
+use std::io;
+use std::panic::Location;
 use thiserror::Error;
-use tokio::sync::mpsc::error::SendError;
-use tokio::task::JoinError;
-
-#[derive(Tags)]
-pub(crate) enum PhiTags {
-    Auth,
-}
-
-pub trait LocationContext<T, E>: Context<T, E> {
-    fn location<C>(self, context: C, location: &Location) -> anyhow::Result<T>
-    where
-        C: Display + Send + Sync + 'static,
-        Self: Sized,
-    {
-        self.context(format!("`{context}` at `{location}`"))
-    }
-}
-
-impl<T, E, C> LocationContext<T, E> for C where C: Context<T, E> {}
-
-pub(crate) type Result<T> = std::result::Result<T, AppError>;
+use tokio::{sync::mpsc::error::SendError, task::JoinError};
 
 #[derive(Error, Debug)]
 pub(crate) enum AppError {
     #[error("sqlx error: `{0}`")]
     DbSqlxError(#[from] sqlx::Error),
+    #[error("sqlx error: `{0}`")]
+    BoxDynErrorError(#[from] Box<dyn StdError + 'static + Send + Sync>),
     #[error("join error: `{0}`")]
     JoinError(#[from] JoinError),
     #[error("material not found: `{0}`")]
@@ -102,59 +86,16 @@ impl ApiResponse for AppError {
     fn register(_: &mut Registry) {}
 }
 
-#[derive(Object, Serialize, Deserialize)]
-pub(crate) struct FormatedEvent {
-    pub(crate) id: String,
-    pub(crate) progress: i16,
-    pub(crate) state: String,
-}
-
-#[derive(Object, Serialize)]
-pub struct ResponseBody<T: Type + ParseFromJSON + ToJSON + Serialize> {
-    code: i32,
-    msg: String,
-    data: Option<T>,
-}
-
-impl<T: Type + ParseFromJSON + ToJSON + Serialize> ResponseBody<T> {
-    pub fn ok(data: T) -> Self {
-        Self::new(0, "OK".to_string(), data)
-    }
-
-    pub fn new(code: i32, msg: String, data: T) -> Self {
-        Self {
-            code,
-            msg,
-            data: Some(data),
-        }
-    }
-
-    pub fn not_found() -> Self {
-        Self {
-            code: 404,
-            msg: "not found".to_string(),
-            data: None,
-        }
+pub trait LocationContext<T, E>: Context<T, E> {
+    fn location<C>(self, context: C, location: &Location) -> anyhow::Result<T>
+    where
+        C: Display + Send + Sync + 'static,
+        Self: Sized,
+    {
+        self.context(format!("`{context}` at `{location}`"))
     }
 }
 
-#[derive(ApiResponse)]
-#[oai]
-pub enum Response<T: Type + ParseFromJSON + ToJSON + Serialize> {
-    #[oai(status = 200)]
-    Ok(Json<ResponseBody<T>>),
-    #[oai(status = 404)]
-    NotFound(Json<ResponseBody<T>>),
-}
+impl<T, E, C> LocationContext<T, E> for C where C: Context<T, E> {}
 
-impl<T> Response<T>
-where
-    T: Type + ParseFromJSON + ToJSON + Serialize,
-{
-    pub fn ok(data: T) -> Self {
-        Self::Ok(Json(ResponseBody::ok(data)))
-    }
-    pub fn not_found() -> Self {
-        Self::Ok(Json(ResponseBody::not_found()))
-    }
-}
+pub(crate) type Result<T> = std::result::Result<T, AppError>;

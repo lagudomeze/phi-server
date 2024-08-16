@@ -36,7 +36,6 @@ pub(crate) fn thumbnail(
 ) -> Result<()> {
     let duration = duration(path.as_ref(), ffprobe_path)? as u64;
 
-
     let mut rand = thread_rng();
 
     let time = rand.gen_range((duration / 2)..duration) as f64;
@@ -60,11 +59,7 @@ pub(crate) fn thumbnail(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ffmpeg_sidecar::{
-        ffprobe::ffprobe_path,
-        download::auto_download,
-        paths::ffmpeg_path
-    };
+    use ffmpeg_sidecar::{download::auto_download, ffprobe::ffprobe_path, paths::ffmpeg_path};
 
     #[test]
     fn test_thumbnail() {

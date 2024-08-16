@@ -1,3 +1,15 @@
+use crate::{
+    auth::apikey::JwtAuth,
+    common::{FormatedEvent, Page, PageResult, Response, Result},
+    material::{
+        biz::{
+            MaterialDetail,
+            MaterialsService
+        },
+        storage::{Id, LocalStorage, Storage}
+    },
+    util::poem::BaseUrl,
+};
 use ioc::{mvc, Bean, OpenApi};
 use poem::web::Field;
 use poem_openapi::{
@@ -5,23 +17,13 @@ use poem_openapi::{
     payload::EventStream,
     payload::Json,
     types::{multipart::Upload, ParseFromMultipartField, ParseResult},
-    Multipart, NewType,
+    Multipart, NewType, Object,
 };
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use tokio::{sync::mpsc::channel, task::spawn};
 use tokio_stream::wrappers::ReceiverStream;
-
-use crate::auth::apikey::JwtAuth;
-use crate::material::biz::MaterialDetail;
-use crate::util::poem::BaseUrl;
-use crate::{
-    common::FormatedEvent,
-    common::{Response, Result},
-    material::{
-        biz::MaterialsService,
-        storage::{Id, LocalStorage, Storage},
-    },
-};
+use tracing::info;
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
@@ -58,8 +60,16 @@ pub(crate) struct UploadPayload {
     pub(crate) desc: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Object)]
+pub(crate) struct SearchCondition {
+    pub(crate) tags: Option<Vec<String>>,
+    #[serde(flatten)]
+    pub(crate) page: Page,
+    pub(crate) query: Option<String>,
+}
+
 #[derive(Bean)]
-pub(crate) struct UploadMvc {
+pub(crate) struct MaterialMvc {
     #[inject(bean)]
     storage: &'static LocalStorage,
     #[inject(bean)]
@@ -68,15 +78,22 @@ pub(crate) struct UploadMvc {
 
 #[mvc]
 #[OpenApi(prefix_path = "/api/v1")]
-impl UploadMvc {
-    //todo
+impl MaterialMvc {
     #[oai(path = "/materials:search", method = "post")]
-    async fn search(&self, upload: UploadPayload, _auth: JwtAuth) -> Result<Json<Id>> {
-        let mut file = upload.file.into_file();
+    async fn search(
+        &self,
+        condition: Json<SearchCondition>,
+        base_url: BaseUrl,
+        auth: JwtAuth,
+    ) -> Result<Response<PageResult<MaterialDetail>>> {
+        info!("{:?}", condition);
 
-        let id = self.storage.save(&mut file).await?;
+        let result = self
+            .materials_svc
+            .search(condition.0, base_url, auth.into())
+            .await?;
 
-        Ok(Json(id.into()))
+        Ok(Response::ok(result))
     }
 
     #[oai(path = "/materials/:id", method = "head")]

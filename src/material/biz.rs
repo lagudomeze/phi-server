@@ -1,26 +1,23 @@
+use crate::{
+    auth::jwt::Claims,
+    common::{AppError, FormatedEvent, PageResult, Result},
+    db::Db,
+    ffmpeg::common::FFmpegUtils,
+    material::{
+        mvc::{SearchCondition, UploadPayload},
+        storage::{Id, LocalStorage, SavedId, Storage},
+        STATE_OK, TYPE_VIDEO,
+    },
+    util::poem::BaseUrl,
+};
 use chrono::{NaiveDateTime, Utc};
 use ioc::Bean;
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::{query_as_with, query_scalar_with, Arguments, SqlitePool};
 use std::{borrow::Cow, ops::Deref};
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
 use tracing::{info, warn};
-
-use crate::auth::jwt::Claims;
-use crate::common::{AppError, FormatedEvent};
-use crate::ffmpeg::common::FFmpegUtils;
-use crate::material::{STATE_OK, TYPE_VIDEO};
-use crate::util::poem::BaseUrl;
-use crate::{
-    common::Result,
-    db::Db,
-    material::storage::SavedId,
-    material::{
-        storage::{Id, LocalStorage, Storage},
-        mvc::UploadPayload,
-    },
-};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "state")]
@@ -53,7 +50,6 @@ impl<'a> VideoUploadEvent<'a> {
         }
     }
 }
-
 
 impl From<VideoUploadEvent<'_>> for FormatedEvent {
     fn from(value: VideoUploadEvent<'_>) -> Self {
@@ -182,6 +178,16 @@ pub(crate) struct MaterialDetail {
 }
 
 impl MaterialsService {
+    pub(crate) async fn search(
+        &self,
+        condition: SearchCondition,
+        base_url: BaseUrl,
+        claims: Claims,
+    ) -> Result<PageResult<MaterialDetail>> {
+        let result = self.repo.search(&condition, &claims.id).await?;
+        result.transfer(|material| self.transfer(&base_url, material))
+    }
+
     pub(crate) async fn upload(
         &self,
         upload: UploadPayload,
@@ -226,7 +232,7 @@ impl MaterialsService {
                 tx.send(VideoUploadEvent::wip(&id, 75).into()).await?;
 
                 let materials =
-                    Materials::new_video(id.to_string(), file_name, upload.desc, claims.id);
+                    Material::new_video(id.to_string(), file_name, upload.desc, claims.id);
                 let tags = upload.tags.as_ref().map(|tags| tags.as_slice());
                 self.repo.save(&materials, tags).await?;
 
@@ -247,29 +253,39 @@ impl MaterialsService {
             return Err(AppError::MaterialNotFound(id.to_string()));
         }
 
-        let materials = self.repo.get(&id).await?;
+        let material = self.repo.get(&id).await?;
+
+        self.transfer(&base_url, material)
+    }
+
+    fn transfer(&self, base_url: &BaseUrl, material: Material) -> Result<MaterialDetail> {
+        let id = Id(material.id);
 
         let slices = VideoSlices {
-            slice: self.storage.url(&base_url, &id, "slice.m3u8")?.to_string(),
+            slice: self.storage.url(base_url, &id, "slice.m3u8")?.to_string(),
             slice720p: self
                 .storage
-                .url(&base_url, &id, "720p/slice.m3u8")?
+                .url(base_url, &id, "720p/slice.m3u8")?
                 .to_string(),
             slice1080p: self
                 .storage
-                .url(&base_url, &id, "1080p/slice.m3u8")?
+                .url(base_url, &id, "1080p/slice.m3u8")?
                 .to_string(),
         };
 
+        let raw = self.storage.url(base_url, &id, "raw")?.to_string();
+
+        let thumbnail = self
+            .storage
+            .url(base_url, &id, "thumbnail.jpeg")?
+            .to_string();
+
         let video = MaterialVideo {
-            id: Id(materials.id),
-            name: materials.name.unwrap_or("".to_string()),
-            raw: self.storage.url(&base_url, &id, "raw")?.to_string(),
-            thumbnail: self
-                .storage
-                .url(&base_url, &id, "thumbnail.jpeg")?
-                .to_string(),
-            description: materials.description.unwrap_or("".to_string()),
+            id,
+            name: material.name.unwrap_or("".to_string()),
+            raw,
+            thumbnail,
+            description: material.description.unwrap_or("".to_string()),
         };
 
         let detail = MaterialDetail { slices, video };
@@ -295,7 +311,7 @@ pub struct MaterialsRepo {
 }
 
 #[derive(sqlx::FromRow, Serialize, Deserialize, Debug, Object)]
-pub(crate) struct Materials {
+pub(crate) struct Material {
     id: String,
     name: Option<String>,
     description: Option<String>,
@@ -305,7 +321,7 @@ pub(crate) struct Materials {
     created_at: NaiveDateTime,
 }
 
-impl Materials {
+impl Material {
     pub(crate) fn new_video(
         id: String,
         name: String,
@@ -325,7 +341,66 @@ impl Materials {
 }
 
 impl MaterialsRepo {
-    async fn save(&self, materials: &Materials, tags: Option<&[String]>) -> Result<()> {
+    async fn search(
+        &self,
+        condition: &SearchCondition,
+        creator: impl AsRef<str>,
+    ) -> Result<PageResult<Material>> {
+        let mut sql_select_args = sqlx::sqlite::SqliteArguments::default();
+        let mut sql_count_args = sqlx::sqlite::SqliteArguments::default();
+
+        let sql_select =
+            "SELECT id, name, description, creator, state, type, created_at FROM materials";
+
+        let sql_count = "SELECT COUNT(*) FROM materials";
+
+        let mut sql_where = " WHERE creator = ?".to_string();
+
+        sql_select_args.add(creator.as_ref())?;
+        sql_count_args.add(creator.as_ref())?;
+
+        if let Some(ref tags) = condition.tags {
+            if !tags.is_empty() {
+                sql_where
+                    .push_str(" AND id IN (SELECT material_id FROM material_tags WHERE tag IN (");
+                for tag in tags {
+                    sql_select_args.add(tag)?;
+                    sql_count_args.add(tag)?;
+                    sql_where.push_str("?,");
+                }
+                sql_where.pop();
+                sql_where.push_str("))");
+            }
+        }
+
+        if let Some(ref query) = condition.query {
+            sql_where.push_str(" AND description LIKE ?");
+            sql_select_args.add(format!("%{query}%"))?;
+            sql_count_args.add(format!("%{query}%"))?;
+        }
+
+        let total: u64 = query_scalar_with(&format!("{sql_count}{sql_where}"), sql_count_args)
+            .fetch_one(self.db)
+            .await?;
+
+        let sql_order = " ORDER BY created_at DESC";
+
+        let sql_limit = " LIMIT ? OFFSET ?";
+
+        sql_select_args.add(condition.page.limit())?;
+        sql_select_args.add(condition.page.offset())?;
+
+        let records: Vec<Material> = query_as_with(
+            &format!("{sql_select}{sql_where}{sql_order}{sql_limit}"),
+            sql_select_args,
+        )
+        .fetch_all(self.db)
+        .await?;
+
+        Ok(PageResult::new(&condition.page, total, records))
+    }
+
+    async fn save(&self, materials: &Material, tags: Option<&[String]>) -> Result<()> {
         let mut tx = self.db.begin().await?;
 
         let result = sqlx::query!(
@@ -369,7 +444,7 @@ impl MaterialsRepo {
         Ok(())
     }
 
-    async fn get(&self, id: &Id) -> Result<Materials> {
+    async fn get(&self, id: &Id) -> Result<Material> {
         let materials = sqlx::query_as(
             r#"
             SELECT id, name, description, creator, state, type, created_at
