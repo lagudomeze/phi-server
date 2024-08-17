@@ -1,4 +1,7 @@
-use crate::{ffmpeg::slice::slice, ffmpeg::thumbnail::thumbnail};
+use crate::ffmpeg::{
+    slice::{Slice, SliceEvent},
+    thumbnail::thumbnail,
+};
 use ffmpeg_sidecar::{
     download::{check_latest_version, download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg},
     version::ffmpeg_version_with_path,
@@ -8,6 +11,8 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
+use tokio::sync::mpsc::{channel, Receiver};
+use tokio::task::spawn_blocking;
 use tracing::info;
 
 #[derive(Debug)]
@@ -99,12 +104,17 @@ impl BeanSpec for FFmpegUtils {
 }
 
 impl FFmpegUtils {
-    pub(crate) fn slice(
+    pub(crate) async fn slice2(
         &self,
         input: impl AsRef<Path>,
         output_dir: impl AsRef<Path>,
-    ) -> crate::common::Result<()> {
-        slice(input, output_dir, &self.ffmpeg_path)
+    ) -> crate::common::Result<Receiver<SliceEvent>> {
+        let (tx, rx) = channel(64);
+        let slice = Slice::new(input, output_dir, &self.ffmpeg_path, tx)?;
+
+        spawn_blocking(|| slice.run());
+
+        Ok(rx)
     }
 
     pub(crate) fn thumbnail(
