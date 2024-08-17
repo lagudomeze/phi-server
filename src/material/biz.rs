@@ -17,7 +17,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{query_as_with, query_scalar_with, Arguments, SqlitePool};
 use std::{borrow::Cow, ops::Deref};
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
+use crate::ffmpeg::slice::SliceEvent;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "state")]
@@ -221,15 +222,29 @@ impl MaterialsService {
                 tx.send(VideoUploadEvent::wip(&id, 25).into()).await?;
 
                 let slice_raw = raw.clone();
-                spawn_blocking(move || -> Result<()> {
-                    //todo
-                    ffmpeg.slice(&slice_raw, slice_raw.parent().expect("not here"))?;
-                    Ok(())
-                })
-                .await??;
+                let mut rx = ffmpeg.slice2(&slice_raw, slice_raw.parent().expect("not here")).await?;
 
-                info!("save slice: {file_name} with id {id}");
-                tx.send(VideoUploadEvent::wip(&id, 75).into()).await?;
+                let mut progress = 26;
+
+                while let Some(event) = rx.recv().await {
+                    match event {
+                        SliceEvent::Ok => {
+                            info!("save slice: {file_name} with id {id}");
+                            tx.send(VideoUploadEvent::wip(&id, 75).into()).await?;
+                        }
+                        SliceEvent::Wip(e) => {
+                            debug!("ffmpeg {e:?}");
+                            tx.send(VideoUploadEvent::wip(&id, progress).into()).await?;
+                            if progress < 75 {
+                                progress += 1;
+                            }
+                        }
+                        SliceEvent::Err(error) => {
+                            return Err(error.into());
+                        }
+                    }
+
+                }
 
                 let materials =
                     Material::new_video(id.to_string(), file_name, upload.desc, claims.id);
