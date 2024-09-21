@@ -2,6 +2,7 @@ use crate::{
     auth::apikey::JwtAuth,
     common::{FormatedEvent, Page, PageResult, Response, Result},
     material::{
+        MaterialType,
         biz::{
             MaterialDetail,
             MaterialsService
@@ -64,8 +65,10 @@ pub(crate) struct UploadPayload {
 pub(crate) struct SearchCondition {
     pub(crate) tags: Option<Vec<String>>,
     #[serde(flatten)]
+    #[oai(flatten = true)]
     pub(crate) page: Page,
     pub(crate) query: Option<String>,
+    pub(crate) r#type: Option<MaterialType>,
 }
 
 #[derive(Bean)]
@@ -125,7 +128,7 @@ impl MaterialMvc {
         Ok(Response::ok("ok".to_string()))
     }
 
-    /// Upload file
+    /// Upload  video file
     #[oai(path = "/materials/video", method = "post")]
     async fn upload(
         &self,
@@ -137,6 +140,18 @@ impl MaterialMvc {
         let _detached = spawn(self.materials_svc.upload(upload, tx, auth.into()));
 
         EventStream::new(ReceiverStream::new(rx))
+    }
+
+    /// Upload image file
+    #[oai(path = "/materials/image", method = "post")]
+    async fn upload_image(
+        &self,
+        upload: UploadPayload,
+        base_url: BaseUrl,
+        auth: JwtAuth,
+    ) -> Result<Response<MaterialDetail>> {
+        let detail = self.materials_svc.upload_image(upload, base_url, auth.into()).await?;
+        Ok(Response::ok(detail))
     }
 }
 

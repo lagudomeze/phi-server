@@ -1,3 +1,5 @@
+use crate::common::AppError::WrongMaterialType;
+use crate::ffmpeg::slice::SliceEvent;
 use crate::{
     auth::jwt::Claims,
     common::{AppError, FormatedEvent, PageResult, Result},
@@ -6,19 +8,18 @@ use crate::{
     material::{
         mvc::{SearchCondition, UploadPayload},
         storage::{Id, LocalStorage, SavedId, Storage},
-        STATE_OK, TYPE_VIDEO,
+        STATE_OK, TYPE_IMAGE, TYPE_VIDEO,
     },
     util::poem::BaseUrl,
 };
 use chrono::{NaiveDateTime, Utc};
 use ioc::Bean;
-use poem_openapi::Object;
+use poem_openapi::{Object, Union};
 use serde::{Deserialize, Serialize};
 use sqlx::{query_as_with, query_scalar_with, Arguments, SqlitePool};
 use std::{borrow::Cow, ops::Deref};
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
 use tracing::{debug, info, warn};
-use crate::ffmpeg::slice::SliceEvent;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "state")]
@@ -172,10 +173,28 @@ pub(crate) struct VideoSlices {
 }
 
 #[derive(Serialize, Deserialize, Debug, Object)]
-pub(crate) struct MaterialDetail {
+pub(crate) struct MaterialVideoDetail {
+    #[serde(flatten)]
+    #[oai(flatten)]
     video: MaterialVideo,
     #[serde(flatten)]
+    #[oai(flatten)]
     slices: VideoSlices,
+}
+
+#[derive(Serialize, Deserialize, Debug, Union)]
+#[oai(discriminator_name = "type")]
+pub(crate) enum MaterialDetail {
+    Video(MaterialVideoDetail),
+    Image(MaterialImage),
+}
+
+#[derive(Serialize, Deserialize, Debug, Object)]
+pub(crate) struct MaterialImage {
+    id: Id,
+    name: String,
+    raw: String,
+    description: String,
 }
 
 impl MaterialsService {
@@ -216,7 +235,7 @@ impl MaterialsService {
                     ffmpeg.thumbnail(&raw_thumbnail, &thumbnail_assert)?;
                     Ok(())
                 })
-                .await??;
+                    .await??;
 
                 info!("save thumbnail: {file_name} with id {id}");
                 tx.send(VideoUploadEvent::wip(&id, 25).into()).await?;
@@ -243,7 +262,6 @@ impl MaterialsService {
                             return Err(error.into());
                         }
                     }
-
                 }
 
                 let materials =
@@ -256,6 +274,32 @@ impl MaterialsService {
         }
 
         Ok(())
+    }
+
+    pub(crate) async fn upload_image(
+        &self,
+        upload: UploadPayload,
+        base_url: BaseUrl,
+        claims: Claims,
+    ) -> Result<MaterialDetail> {
+        let file_name = upload.file.file_name().unwrap_or("no_name").to_string();
+        let raw_file = upload.file.into_file();
+
+        match self.storage.save(raw_file).await? {
+            SavedId::Existed(id) => {
+                warn!("file {file_name} is existed! return id {id}!");
+                let material = self.repo.get(&id).await?;
+                self.transfer(&base_url, material)
+            }
+            SavedId::New(id) => {
+                info!("new image file {file_name} with id {id}");
+                let material =
+                    Material::new_image(id.to_string(), file_name, upload.desc, claims.id);
+                let tags = upload.tags.as_ref().map(|tags| tags.as_slice());
+                self.repo.save(&material, tags).await?;
+                self.transfer(&base_url, material)
+            }
+        }
     }
 
     pub(crate) async fn detail(
@@ -276,34 +320,54 @@ impl MaterialsService {
     fn transfer(&self, base_url: &BaseUrl, material: Material) -> Result<MaterialDetail> {
         let id = Id(material.id);
 
-        let slices = VideoSlices {
-            slice: self.storage.url(base_url, &id, "slice.m3u8")?.to_string(),
-            slice720p: self
-                .storage
-                .url(base_url, &id, "720p/slice.m3u8")?
-                .to_string(),
-            slice1080p: self
-                .storage
-                .url(base_url, &id, "1080p/slice.m3u8")?
-                .to_string(),
+        let detail = match material.r#type as u16 {
+            TYPE_VIDEO => {
+                let slices = VideoSlices {
+                    slice: self.storage.url(base_url, &id, "slice.m3u8")?.to_string(),
+                    slice720p: self
+                        .storage
+                        .url(base_url, &id, "720p/slice.m3u8")?
+                        .to_string(),
+                    slice1080p: self
+                        .storage
+                        .url(base_url, &id, "1080p/slice.m3u8")?
+                        .to_string(),
+                };
+
+                let raw = self.storage.url(base_url, &id, "raw")?.to_string();
+
+                let thumbnail = self
+                    .storage
+                    .url(base_url, &id, "thumbnail.jpeg")?
+                    .to_string();
+
+                let video = MaterialVideo {
+                    id,
+                    name: material.name.unwrap_or("".to_string()),
+                    raw,
+                    thumbnail,
+                    description: material.description.unwrap_or("".to_string()),
+                };
+
+                let detail = MaterialVideoDetail { slices, video };
+                MaterialDetail::Video(detail)
+            }
+            TYPE_IMAGE => {
+                let raw = self.storage.url(base_url, &id, "raw")?.to_string();
+
+                let detail = MaterialImage {
+                    id,
+                    name: material.name.unwrap_or("".to_string()),
+                    raw,
+                    description: material.description.unwrap_or("".to_string()),
+                };
+
+                MaterialDetail::Image(detail)
+            }
+            unexpected => {
+                return Err(WrongMaterialType(unexpected))
+            }
         };
-
-        let raw = self.storage.url(base_url, &id, "raw")?.to_string();
-
-        let thumbnail = self
-            .storage
-            .url(base_url, &id, "thumbnail.jpeg")?
-            .to_string();
-
-        let video = MaterialVideo {
-            id,
-            name: material.name.unwrap_or("".to_string()),
-            raw,
-            thumbnail,
-            description: material.description.unwrap_or("".to_string()),
-        };
-
-        let detail = MaterialDetail { slices, video };
 
         Ok(detail)
     }
@@ -353,6 +417,22 @@ impl Material {
             created_at: Utc::now().naive_utc(),
         }
     }
+    pub(crate) fn new_image(
+        id: String,
+        name: String,
+        description: Option<String>,
+        creator: String,
+    ) -> Self {
+        Self {
+            id,
+            name: Some(name),
+            description,
+            creator,
+            state: STATE_OK as i64,
+            r#type: TYPE_IMAGE as i64,
+            created_at: Utc::now().naive_utc(),
+        }
+    }
 }
 
 impl MaterialsRepo {
@@ -394,6 +474,12 @@ impl MaterialsRepo {
             sql_count_args.add(format!("%{query}%"))?;
         }
 
+        if let  Some(ref material_type) = condition.r#type{
+            sql_where.push_str(" AND type = ?");
+            sql_select_args.add(material_type.value())?;
+            sql_count_args.add(material_type.value())?;
+        }
+
         let total: u64 = query_scalar_with(&format!("{sql_count}{sql_where}"), sql_count_args)
             .fetch_one(self.db)
             .await?;
@@ -409,8 +495,8 @@ impl MaterialsRepo {
             &format!("{sql_select}{sql_where}{sql_order}{sql_limit}"),
             sql_select_args,
         )
-        .fetch_all(self.db)
-        .await?;
+            .fetch_all(self.db)
+            .await?;
 
         Ok(PageResult::new(&condition.page, total, records))
     }
@@ -431,8 +517,8 @@ impl MaterialsRepo {
             materials.r#type,
             materials.created_at
         )
-        .execute(&mut *tx)
-        .await?;
+            .execute(&mut *tx)
+            .await?;
 
         if result.rows_affected() == 0 {
             return Err(AppError::DbError("save materials failed".to_string()));
@@ -449,8 +535,8 @@ impl MaterialsRepo {
                     tag,
                     materials.created_at
                 )
-                .execute(&mut *tx)
-                .await?;
+                    .execute(&mut *tx)
+                    .await?;
             }
         }
 
@@ -467,9 +553,9 @@ impl MaterialsRepo {
             WHERE id = ?
             "#,
         )
-        .bind(id.as_ref())
-        .fetch_one(self.db)
-        .await?;
+            .bind(id.as_ref())
+            .fetch_one(self.db)
+            .await?;
 
         Ok(materials)
     }
@@ -485,8 +571,8 @@ impl MaterialsRepo {
             "#,
             id_str
         )
-        .execute(&mut *tx)
-        .await?;
+            .execute(&mut *tx)
+            .await?;
 
         sqlx::query!(
             r#"
@@ -494,8 +580,8 @@ impl MaterialsRepo {
             "#,
             id_str
         )
-        .execute(&mut *tx)
-        .await?;
+            .execute(&mut *tx)
+            .await?;
 
         tx.commit().await?;
 
