@@ -7,10 +7,7 @@ use ffmpeg_sidecar::{
     version::ffmpeg_version_with_path,
 };
 use ioc::{bean, BeanSpec, InitContext};
-use std::{
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
-};
+use std::{fs, path::{Path, PathBuf}, process::{Command, Stdio}};
 use tokio::sync::mpsc::{channel, Receiver};
 use tokio::task::spawn_blocking;
 use tracing::info;
@@ -67,7 +64,11 @@ impl FFmpegUtils {
             let download_url = ffmpeg_download_url()?;
             let destination = sidecar_parent.as_path();
 
-            info!("Downloading from: {:?}", download_url);
+            if !fs::exists(destination)? {
+                fs::create_dir_all(destination)?;
+            }
+
+            info!("Downloading from: {:?} to {:?}", download_url, destination);
             let archive_path = download_ffmpeg_package(download_url, destination)?;
             info!("Downloaded package: {:?}", archive_path);
 

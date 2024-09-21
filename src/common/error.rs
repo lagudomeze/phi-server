@@ -49,6 +49,8 @@ pub(crate) enum AppError {
     JwtError(#[from] jsonwebtoken::errors::Error),
     #[error("ring error: `{0}`")]
     UnspecifiedRingError(#[from] ring::error::Unspecified),
+    #[error("wrong material type: `{0}`")]
+    WrongMaterialType(u16),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
     #[error("`{0}`")]
