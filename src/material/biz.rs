@@ -1,5 +1,6 @@
 use crate::common::AppError::WrongMaterialType;
 use crate::ffmpeg::slice::SliceEvent;
+use crate::material::mvc::ImagesUploadPayload;
 use crate::{
     auth::jwt::Claims,
     common::{AppError, FormatedEvent, PageResult, Result},
@@ -278,28 +279,35 @@ impl MaterialsService {
 
     pub(crate) async fn upload_image(
         &self,
-        upload: UploadPayload,
+        upload: ImagesUploadPayload,
         base_url: BaseUrl,
         claims: Claims,
-    ) -> Result<MaterialDetail> {
-        let file_name = upload.file.file_name().unwrap_or("no_name").to_string();
-        let raw_file = upload.file.into_file();
+    ) -> Result<Vec<MaterialImage>> {
+        let mut details = Vec::with_capacity(upload.files.capacity());
 
-        match self.storage.save(raw_file).await? {
-            SavedId::Existed(id) => {
-                warn!("file {file_name} is existed! return id {id}!");
-                let material = self.repo.get(&id).await?;
-                self.transfer(&base_url, material)
-            }
-            SavedId::New(id) => {
-                info!("new image file {file_name} with id {id}");
-                let material =
-                    Material::new_image(id.to_string(), file_name, upload.desc, claims.id);
-                let tags = upload.tags.as_ref().map(|tags| tags.as_slice());
-                self.repo.save(&material, tags).await?;
-                self.transfer(&base_url, material)
-            }
+        for file in upload.files {
+            let file_name = file.file_name().unwrap_or("no_name").to_string();
+            let raw_file = file.into_file();
+
+            let detail = match self.storage.save(raw_file).await? {
+                SavedId::Existed(id) => {
+                    warn!("file {file_name} is existed! return id {id}!");
+                    let material = self.repo.get(&id).await?;
+                    self.transfer_image(&base_url, material)
+                }
+                SavedId::New(id) => {
+                    info!("new image file {file_name} with id {id}");
+                    let material = Material::new_image(id.to_string(), file_name, upload.desc.clone(), claims.id.clone());
+                    let tags = upload.tags.as_ref().map(|tags| tags.as_slice());
+                    self.repo.save(&material, tags).await?;
+                    self.transfer_image(&base_url, material)
+                }
+            }?;
+            details.push(detail);
+
         }
+
+        Ok(details)
     }
 
     pub(crate) async fn detail(
@@ -317,51 +325,60 @@ impl MaterialsService {
         self.transfer(&base_url, material)
     }
 
-    fn transfer(&self, base_url: &BaseUrl, material: Material) -> Result<MaterialDetail> {
+    fn transfer_video(&self, base_url: &BaseUrl, material: Material) -> Result<MaterialVideoDetail> {
         let id = Id(material.id);
+        let slices = VideoSlices {
+            slice: self.storage.url(base_url, &id, "slice.m3u8")?.to_string(),
+            slice720p: self
+                .storage
+                .url(base_url, &id, "720p/slice.m3u8")?
+                .to_string(),
+            slice1080p: self
+                .storage
+                .url(base_url, &id, "1080p/slice.m3u8")?
+                .to_string(),
+        };
 
+        let raw = self.storage.url(base_url, &id, "raw")?.to_string();
+
+        let thumbnail = self
+            .storage
+            .url(base_url, &id, "thumbnail.jpeg")?
+            .to_string();
+
+        let video = MaterialVideo {
+            id,
+            name: material.name.unwrap_or("".to_string()),
+            raw,
+            thumbnail,
+            description: material.description.unwrap_or("".to_string()),
+        };
+
+        let detail = MaterialVideoDetail { slices, video };
+        Ok(detail)
+    }
+
+    fn transfer_image(&self, base_url: &BaseUrl, material: Material) -> Result<MaterialImage> {
+        let id = Id(material.id);
+        let raw = self.storage.url(base_url, &id, "raw")?.to_string();
+
+        let detail = MaterialImage {
+            id,
+            name: material.name.unwrap_or("".to_string()),
+            raw,
+            description: material.description.unwrap_or("".to_string()),
+        };
+        Ok(detail)
+    }
+
+    fn transfer(&self, base_url: &BaseUrl, material: Material) -> Result<MaterialDetail> {
         let detail = match material.r#type as u16 {
             TYPE_VIDEO => {
-                let slices = VideoSlices {
-                    slice: self.storage.url(base_url, &id, "slice.m3u8")?.to_string(),
-                    slice720p: self
-                        .storage
-                        .url(base_url, &id, "720p/slice.m3u8")?
-                        .to_string(),
-                    slice1080p: self
-                        .storage
-                        .url(base_url, &id, "1080p/slice.m3u8")?
-                        .to_string(),
-                };
-
-                let raw = self.storage.url(base_url, &id, "raw")?.to_string();
-
-                let thumbnail = self
-                    .storage
-                    .url(base_url, &id, "thumbnail.jpeg")?
-                    .to_string();
-
-                let video = MaterialVideo {
-                    id,
-                    name: material.name.unwrap_or("".to_string()),
-                    raw,
-                    thumbnail,
-                    description: material.description.unwrap_or("".to_string()),
-                };
-
-                let detail = MaterialVideoDetail { slices, video };
+                let detail = self.transfer_video(base_url, material)?;
                 MaterialDetail::Video(detail)
             }
             TYPE_IMAGE => {
-                let raw = self.storage.url(base_url, &id, "raw")?.to_string();
-
-                let detail = MaterialImage {
-                    id,
-                    name: material.name.unwrap_or("".to_string()),
-                    raw,
-                    description: material.description.unwrap_or("".to_string()),
-                };
-
+                let detail = self.transfer_image(base_url, material)?;
                 MaterialDetail::Image(detail)
             }
             unexpected => {

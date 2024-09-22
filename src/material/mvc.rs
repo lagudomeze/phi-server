@@ -25,6 +25,7 @@ use std::ops::Deref;
 use tokio::{sync::mpsc::channel, task::spawn};
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::info;
+use crate::material::biz::MaterialImage;
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
@@ -57,6 +58,13 @@ impl ParseFromMultipartField for Tags {
 #[derive(Debug, Multipart)]
 pub(crate) struct UploadPayload {
     pub(crate) file: Upload,
+    pub(crate) tags: Option<Tags>,
+    pub(crate) desc: Option<String>,
+}
+
+#[derive(Debug, Multipart)]
+pub(crate) struct ImagesUploadPayload {
+    pub(crate) files: Vec<Upload>,
     pub(crate) tags: Option<Tags>,
     pub(crate) desc: Option<String>,
 }
@@ -146,10 +154,10 @@ impl MaterialMvc {
     #[oai(path = "/materials/image", method = "post")]
     async fn upload_image(
         &self,
-        upload: UploadPayload,
+        upload: ImagesUploadPayload,
         base_url: BaseUrl,
         auth: JwtAuth,
-    ) -> Result<Response<MaterialDetail>> {
+    ) -> Result<Response<Vec<MaterialImage>>> {
         let detail = self.materials_svc.upload_image(upload, base_url, auth.into()).await?;
         Ok(Response::ok(detail))
     }
