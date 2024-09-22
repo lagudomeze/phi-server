@@ -28,6 +28,8 @@ impl BeanSpec for HttpClient {
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
+            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_hostnames(true)
             .build()
             .location("build http client", Location::caller())?;
 
