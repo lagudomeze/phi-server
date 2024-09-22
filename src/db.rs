@@ -16,7 +16,7 @@ impl BeanSpec for Db {
     type Bean = SqlitePool;
     fn build(ctx: &mut impl InitContext) -> ioc::Result<Self::Bean> {
         let database_url = ctx.get_config::<String>("db.url")?;
-        let max_connections = ctx.get_config::<u32>("db.max_connections")?;
+        let max_connections = ctx.get_config::<u32>("db.max-connections")?;
 
         let pool = Builder::new_current_thread()
             .enable_time()
