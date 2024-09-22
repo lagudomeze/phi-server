@@ -35,11 +35,11 @@ pub struct LoginMvc {
 
 #[derive(Bean)]
 pub struct Oauth2 {
-    #[inject(config = "oauth.authorization_url")]
+    #[inject(config = "oauth.authorization-url")]
     authorization_url: String,
-    #[inject(config = "oauth.client_id")]
+    #[inject(config = "oauth.client-id")]
     client_id: String,
-    #[inject(config = "oauth.client_secret")]
+    #[inject(config = "oauth.client-secret")]
     client_secret: String,
     #[inject(config = "oauth.scopes")]
     scopes: Vec<String>,
@@ -49,9 +49,9 @@ pub struct Oauth2 {
     jwt: &'static JwtService,
     #[inject(bean)]
     client: &'static HttpClient,
-    #[inject(config = "oauth.redirect_policy")]
+    #[inject(config = "oauth.redirect-policy")]
     redirect_policy: RedirectPolicy,
-    #[inject(config = "oauth.redirect_url")]
+    #[inject(config = "oauth.redirect-url")]
     redirect_url: String,
 }
 
