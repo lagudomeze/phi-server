@@ -12,8 +12,10 @@ use poem_openapi::{param::Query, Object, OpenApi};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, panic::Location, str::FromStr};
+use poem_openapi::payload::Json;
 use tracing::info;
 use tracing::log::warn;
+use common::AppError::InvalidUsernameOrPassword;
 
 enum RedirectPolicy {
     Safe,
@@ -53,6 +55,10 @@ pub struct Oauth2 {
     redirect_policy: RedirectPolicy,
     #[inject(config = "oauth.redirect-url")]
     redirect_url: String,
+    #[inject(config = "admin.name")]
+    admin_name: String,
+    #[inject(config = "admin.pass")]
+    admin_pass: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -165,7 +171,7 @@ impl Oauth2 {
 
         let user_id = user.user_id();
         let name = user.name();
-        if !self.service.exists_by_id(&user_id).await? {
+        if !self.service.exists_by_id(user_id.as_ref()).await? {
             let new_user = NewUser::new(user_id.as_ref(), name.as_ref(), &user.email);
             self.service.create_user(new_user).await?;
             info!("user:{} id:{} created", name, user_id);
@@ -177,6 +183,26 @@ impl Oauth2 {
 
         Ok(token)
     }
+
+    pub async fn admin_login(&self, name: impl AsRef<str>, pass: impl AsRef<str>) -> common::Result<String> {
+        if self.admin_name == name.as_ref() && self.admin_pass == pass.as_ref() {
+            let user_id = "phi_super_admin";
+            let name = &self.admin_name;
+            if !self.service.exists_by_id(user_id).await? {
+                let new_user = NewUser::new(user_id, name, "buildin");
+                self.service.create_user(new_user).await?;
+                info!("user:{} id:{} created", name, user_id);
+            }
+
+            let claims = self.jwt.new_claims(name.into(), user_id.into());
+
+            let token = self.jwt.encode(&claims)?;
+            Ok(token)
+        } else {
+            Err(InvalidUsernameOrPassword)
+        }
+
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Object)]
@@ -187,6 +213,12 @@ pub(crate) struct LoginUrl {
 #[derive(Serialize, Deserialize, Debug, Object)]
 pub(crate) struct LoginResult {
     token: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Object)]
+pub(crate) struct LoginRequest {
+    username: String,
+    password: String,
 }
 
 #[mvc]
@@ -206,6 +238,19 @@ impl LoginMvc {
         let token = self
             .oauth
             .login_by_github_code(&code.0)
+            .await
+            .location("login failed", Location::caller())?;
+        Ok(common::Response::ok(LoginResult { token }))
+    }
+
+    #[oai(path = "/admin_login", method = "post")]
+    async fn admin_login(
+        &self,
+        request: Json<LoginRequest>,
+    ) -> common::Result<common::Response<LoginResult>> {
+        let token = self
+            .oauth
+            .admin_login(&request.username, &request.password)
             .await
             .location("login failed", Location::caller())?;
         Ok(common::Response::ok(LoginResult { token }))
