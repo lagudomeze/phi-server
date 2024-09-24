@@ -188,7 +188,7 @@ impl Oauth2 {
         if self.admin_name == name.as_ref() && self.admin_pass == pass.as_ref() {
             let user_id = "phi_super_admin";
             let name = &self.admin_name;
-            if !self.service.exists_by_id(&user_id).await? {
+            if !self.service.exists_by_id(user_id).await? {
                 let new_user = NewUser::new(user_id, name, "buildin");
                 self.service.create_user(new_user).await?;
                 info!("user:{} id:{} created", name, user_id);
