@@ -35,6 +35,10 @@ scopes = ["read:user", "read:email"]
 redirect-policy = "auto"
 redirect-url = "http://localhost:8081/api/auth/oauth2_login"
 
+[admin]
+name = "admin"
+pass = "goodluckxixi"
+
 [jwt]
 document_path = "keys/secret.pem"
 expire_seconds = 1800

@@ -51,6 +51,8 @@ pub(crate) enum AppError {
     UnspecifiedRingError(#[from] ring::error::Unspecified),
     #[error("wrong material type: `{0}`")]
     WrongMaterialType(u16),
+    #[error("wrong username or password")]
+    InvalidUsernameOrPassword,
     #[error(transparent)]
     Other(#[from] anyhow::Error),
     #[error("`{0}`")]
@@ -73,7 +75,7 @@ impl ResponseError for AppError {
             "code": 500,
             "msg": format!("{self}"),
         }))
-        .unwrap();
+            .unwrap();
         PoemResponse::builder().status(self.status()).body(body)
     }
 }

@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use base64ct::{Base64, Encoding};
+use base64ct::{Base64Url, Encoding};
 use ioc::Bean;
 use poem_openapi::NewType;
 use serde::{Deserialize, Serialize};
@@ -168,7 +168,7 @@ impl Storage for LocalStorage {
         }
 
         let array = hasher.finalize();
-        let id = Id(Base64::encode_string(&array));
+        let id = Id(Base64Url::encode_string(&array));
 
         let mut target = self.path(&id);
         target.push("raw");
