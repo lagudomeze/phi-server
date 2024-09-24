@@ -171,7 +171,7 @@ impl Oauth2 {
 
         let user_id = user.user_id();
         let name = user.name();
-        if !self.service.exists_by_id(&user_id).await? {
+        if !self.service.exists_by_id(user_id.as_ref()).await? {
             let new_user = NewUser::new(user_id.as_ref(), name.as_ref(), &user.email);
             self.service.create_user(new_user).await?;
             info!("user:{} id:{} created", name, user_id);
