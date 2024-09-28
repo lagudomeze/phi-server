@@ -71,19 +71,26 @@ impl ResponseError for AppError {
     }
 
     fn as_response(&self) -> PoemResponse {
+        let code = match self {
+            AppError::JwtError(_) => 1001,
+            _ => 500,
+        };
+
         let body = Body::from_json(serde_json::json!({
-            "code": 500,
+            "code": code,
             "msg": format!("{self}"),
         }))
             .unwrap();
+
         PoemResponse::builder().status(self.status()).body(body)
     }
 }
 
 impl ApiResponse for AppError {
     fn meta() -> MetaResponses {
+        let responses = Vec::new();
         MetaResponses {
-            responses: Vec::new(),
+            responses,
         }
     }
 
