@@ -486,8 +486,10 @@ impl MaterialsRepo {
         }
 
         if let Some(ref query) = condition.query {
-            sql_where.push_str(" AND description LIKE ?");
+            sql_where.push_str(" AND (name LIKE ? or description LIKE ?)");
             sql_select_args.add(format!("%{query}%"))?;
+            sql_select_args.add(format!("%{query}%"))?;
+            sql_count_args.add(format!("%{query}%"))?;
             sql_count_args.add(format!("%{query}%"))?;
         }
 
