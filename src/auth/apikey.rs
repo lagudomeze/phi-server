@@ -4,7 +4,7 @@ use poem::Request;
 use poem_openapi::{auth::ApiKey, SecurityScheme};
 use std::ops::Deref;
 
-#[derive(SecurityScheme)]
+#[derive(SecurityScheme, Debug)]
 #[oai(
     ty = "api_key",
     key_name = "auth",
@@ -24,6 +24,12 @@ impl Deref for JwtAuth {
 impl From<JwtAuth> for Claims {
     fn from(value: JwtAuth) -> Self {
         value.0
+    }
+}
+
+impl JwtAuth {
+    pub(crate) fn into_inner(self) -> Claims {
+        self.0
     }
 }
 

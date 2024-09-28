@@ -83,11 +83,11 @@ impl BeanSpec for JwtService {
     type Bean = Self;
 
     fn build(ctx: &mut impl InitContext) -> ioc::Result<Self::Bean> {
-        let document_path = ctx.get_config::<PathBuf>("jwt.document_path")?;
+        let document_path = ctx.get_config::<PathBuf>("jwt.document-path")?;
 
         let keys = Keys::new(document_path)?;
 
-        let expire_secs = ctx.get_config::<u64>("jwt.expire_seconds")?;
+        let expire_secs = ctx.get_config::<u64>("jwt.expire-seconds")?;
 
         Ok(JwtService { keys, expire_secs })
     }

@@ -1,3 +1,5 @@
+use crate::auth::apikey::JwtAuth;
+use crate::auth::jwt::Claims;
 use crate::auth::user::NewUser;
 use crate::{
     auth::{jwt::JwtService, user::UserService},
@@ -5,17 +7,18 @@ use crate::{
     common::{self, LocationContext, PhiTags},
 };
 use cfg_rs::impl_enum;
+use common::AppError::InvalidUsernameOrPassword;
 use http::uri::Scheme;
 use ioc::{mvc, Bean};
 use poem::Request;
+use poem_openapi::payload::Json;
 use poem_openapi::{param::Query, Object, OpenApi};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, panic::Location, str::FromStr};
-use poem_openapi::payload::Json;
-use tracing::info;
+use chrono::{DateTime, Local};
+use tracing::{debug, info};
 use tracing::log::warn;
-use common::AppError::InvalidUsernameOrPassword;
 
 enum RedirectPolicy {
     Safe,
@@ -33,6 +36,8 @@ impl_enum!(RedirectPolicy {
 pub struct LoginMvc {
     #[inject(bean)]
     oauth: &'static Oauth2,
+    #[inject(bean)]
+    jwt: &'static JwtService,
 }
 
 #[derive(Bean)]
@@ -201,7 +206,6 @@ impl Oauth2 {
         } else {
             Err(InvalidUsernameOrPassword)
         }
-
     }
 }
 
@@ -253,6 +257,21 @@ impl LoginMvc {
             .admin_login(&request.username, &request.password)
             .await
             .location("login failed", Location::caller())?;
+        Ok(common::Response::ok(LoginResult { token }))
+    }
+
+    #[oai(path = "/token_refresh", method = "post")]
+    async fn token_refresh(&self, auth: JwtAuth) -> common::Result<common::Response<LoginResult>> {
+        let Claims { name, id, .. } = auth.into_inner();
+
+        let claims = self.jwt.new_claims(name, id);
+
+        let token = self
+            .jwt.encode(&claims)
+            .location("login failed", Location::caller())?;
+
+        debug!("token {token} will expire at:{:#?}", DateTime::from_timestamp(claims.exp as i64, 0).map(|time| time.with_timezone(&Local)));
+
         Ok(common::Response::ok(LoginResult { token }))
     }
 }
