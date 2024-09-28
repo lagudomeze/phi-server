@@ -40,5 +40,5 @@ name = "admin"
 pass = "goodluckxixi"
 
 [jwt]
-document_path = "keys/secret.pem"
-expire_seconds = 1800
+document-path = "keys/secret.pem"
+expire-seconds = 7200
