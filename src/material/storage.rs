@@ -1,18 +1,20 @@
 use anyhow::anyhow;
-use base64ct::{Base64Url, Encoding};
 use ioc::Bean;
 use poem_openapi::NewType;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::fmt::{Display, Formatter};
 use std::{
+    fmt::{Display, Formatter},
     fs::{create_dir_all, remove_file as std_remove_file},
     ops::Deref,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
 };
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::{
-    fs::{remove_file, rename, try_exists, File as TokioFile},
-    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
+    fs::{remove_file, try_exists, File as TokioFile},
+    io::AsyncRead,
 };
 use tracing::{error, warn};
 use url::Url;
@@ -23,6 +25,12 @@ use crate::util::poem::BaseUrl;
 
 #[derive(NewType, Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Id(pub(crate) String);
+
+impl Id {
+    pub(crate) fn new_uuid() -> Self {
+        Self(Uuid::new_v4().as_simple().to_string())
+    }
+}
 
 impl AsRef<str> for Id {
     fn as_ref(&self) -> &str {
@@ -45,17 +53,8 @@ impl Deref for Id {
 }
 
 pub(crate) enum SavedId {
-    Existed(Id),
-    New(Id),
-}
-
-impl From<SavedId> for Id {
-    fn from(value: SavedId) -> Self {
-        match value {
-            SavedId::Existed(id) => id,
-            SavedId::New(id) => id,
-        }
-    }
+    Existed,
+    New,
 }
 
 pub(crate) trait Storage {
@@ -67,7 +66,7 @@ pub(crate) trait Storage {
 
     async fn assert_file(&self, id: &Id, path: impl AsRef<Path>) -> Result<PathBuf>;
 
-    async fn save(&self, source: impl AsyncRead + Unpin) -> Result<SavedId>;
+    async fn save(&self, id: &Id, source: impl AsyncRead + Unpin) -> Result<SavedId>;
 
     fn url(&self, base_url: &BaseUrl, id: &Id, path: impl AsRef<str>) -> Result<Url>;
 }
@@ -81,18 +80,28 @@ pub(crate) struct LocalStorage {
 }
 
 struct TmpFile {
+    target: TokioFile,
     path: PathBuf,
 }
 
 impl TmpFile {
-    async fn new(dir: impl AsRef<Path>) -> Result<(Self, TokioFile)> {
-        let path = dir.as_ref().join(format!("{}.tmp", Uuid::new_v4()));
-        let file = TokioFile::create(&path).await?;
-        Ok((Self { path }, file))
+    async fn new(path: PathBuf) -> Result<Self> {
+        let target = TokioFile::create(&path).await?;
+        Ok(Self { target, path })
     }
 
-    async fn move_to(self, target: impl AsRef<Path>) -> Result<()> {
-        rename(&self.path, target).await?;
+    async fn copy_from(mut self, mut source: impl AsyncRead + Unpin) -> Result<()> {
+        let mut cache = [0; 512];
+
+        loop {
+            match source.read(&mut cache).await? {
+                0 => break,
+                n => {
+                    self.target.write_all(&cache[..n]).await?;
+                }
+            };
+        }
+
         // skip file clean in `Drop::drop`
         std::mem::forget(self);
         Ok(())
@@ -150,37 +159,21 @@ impl Storage for LocalStorage {
         Ok(buf)
     }
 
-    async fn save(&self, mut source: impl AsyncRead + Unpin) -> Result<SavedId> {
-        // todo maybe use cache in heap?
-        let mut cache = [0; 512];
-
-        let (move_guard, mut target) = TmpFile::new(&self.dir).await?;
-
-        let mut hasher = Sha256::new();
-        loop {
-            match source.read(&mut cache).await? {
-                0 => break,
-                n => {
-                    hasher.update(&cache[..n]);
-                    target.write_all(&cache[..n]).await?;
-                }
-            };
-        }
-
-        let array = hasher.finalize();
-        let id = Id(Base64Url::encode_string(&array));
-
+    async fn save(&self, id: &Id, source: impl AsyncRead + Unpin) -> Result<SavedId> {
         let mut target = self.path(&id);
         target.push("raw");
 
         if try_exists(&target).await? {
-            Ok(SavedId::Existed(id))
+            Ok(SavedId::Existed)
         } else {
             if let Some(parent) = target.parent() {
                 create_dir_all(parent)?;
             }
-            move_guard.move_to(target).await?;
-            Ok(SavedId::New(id))
+            TmpFile::new(target)
+                .await?
+                .copy_from(source)
+                .await?;
+            Ok(SavedId::New)
         }
     }
 

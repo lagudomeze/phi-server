@@ -1,6 +1,6 @@
 use crate::common::AppError::WrongMaterialType;
 use crate::ffmpeg::slice::SliceEvent;
-use crate::material::mvc::ImagesUploadPayload;
+use crate::material::mvc::{ImagesUploadPayload, MaterialPatchRequest};
 use crate::{
     auth::jwt::Claims,
     common::{AppError, FormatedEvent, PageResult, Result},
@@ -218,12 +218,14 @@ impl MaterialsService {
         let file_name = upload.file.file_name().unwrap_or("no_name").to_string();
         let raw_file = upload.file.into_file();
 
-        match self.storage.save(raw_file).await? {
-            SavedId::Existed(id) => {
+        let id = Id::new_uuid();
+
+        match self.storage.save(&id, raw_file).await? {
+            SavedId::Existed => {
                 warn!("file {file_name} is existed! return id {id}!");
                 tx.send(VideoUploadEvent::existed(&id).into()).await?;
             }
-            SavedId::New(id) => {
+            SavedId::New => {
                 info!("new file {file_name} with id {id}");
                 tx.send(VideoUploadEvent::wip(&id, 15).into()).await?;
 
@@ -288,14 +290,15 @@ impl MaterialsService {
         for file in upload.files {
             let file_name = file.file_name().unwrap_or("no_name").to_string();
             let raw_file = file.into_file();
+            let id = Id::new_uuid();
 
-            let detail = match self.storage.save(raw_file).await? {
-                SavedId::Existed(id) => {
+            let detail = match self.storage.save(&id, raw_file).await? {
+                SavedId::Existed => {
                     warn!("file {file_name} is existed! return id {id}!");
                     let material = self.repo.get(&id).await?;
                     self.transfer_image(&base_url, material)
                 }
-                SavedId::New(id) => {
+                SavedId::New => {
                     info!("new image file {file_name} with id {id}");
                     let material = Material::new_image(id.to_string(), file_name, upload.desc.clone(), claims.id.clone());
                     let tags = upload.tags.as_ref().map(|tags| tags.as_slice());
@@ -389,6 +392,11 @@ impl MaterialsService {
         Ok(detail)
     }
 
+    pub(crate) async fn update(&self, id: Id, _claims: Claims, request: MaterialPatchRequest) -> Result<()> {
+        self.repo.update_name(&id, &request.name).await?;
+        Ok(())
+    }
+
     pub(crate) async fn delete(&self, id: Id, _claims: Claims) -> Result<()> {
         if !self.storage.exists(&id).await? {
             return Err(AppError::MaterialNotFound(id.to_string()));
@@ -410,6 +418,7 @@ pub struct MaterialsRepo {
 pub(crate) struct Material {
     id: String,
     name: Option<String>,
+    raw_name: Option<String>,
     description: Option<String>,
     creator: String,
     state: i64,
@@ -426,7 +435,8 @@ impl Material {
     ) -> Self {
         Self {
             id,
-            name: Some(name),
+            name: Some(name.clone()),
+            raw_name: Some(name),
             description,
             creator,
             state: STATE_OK as i64,
@@ -442,7 +452,8 @@ impl Material {
     ) -> Self {
         Self {
             id,
-            name: Some(name),
+            name: Some(name.clone()),
+            raw_name: Some(name),
             description,
             creator,
             state: STATE_OK as i64,
@@ -462,7 +473,7 @@ impl MaterialsRepo {
         let mut sql_count_args = sqlx::sqlite::SqliteArguments::default();
 
         let sql_select =
-            "SELECT id, name, description, creator, state, type, created_at FROM materials";
+            "SELECT id, name, raw_name, description, creator, state, type, created_at FROM materials";
 
         let sql_count = "SELECT COUNT(*) FROM materials";
 
@@ -525,11 +536,12 @@ impl MaterialsRepo {
 
         let result = sqlx::query!(
             r#"
-            INSERT INTO materials (id, name, description, creator, state, type, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO materials (id, name, raw_name, description, creator, state, type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             "#,
             materials.id,
             materials.name,
+            materials.raw_name,
             materials.description,
             materials.creator,
             materials.state,
@@ -567,7 +579,7 @@ impl MaterialsRepo {
     async fn get(&self, id: &Id) -> Result<Material> {
         let materials = sqlx::query_as(
             r#"
-            SELECT id, name, description, creator, state, type, created_at
+            SELECT id, name, raw_name, description, creator, state, type, created_at
             FROM materials
             WHERE id = ?
             "#,
@@ -577,6 +589,20 @@ impl MaterialsRepo {
             .await?;
 
         Ok(materials)
+    }
+
+    async fn update_name(&self, id: &Id, name: &str) -> Result<()> {
+        let id_str = id.deref();
+
+        sqlx::query!(
+            r#"
+            UPDATE materials SET name = ? WHERE id = ?
+            "#,
+            name,
+            id_str
+        ).execute(self.db).await?;
+
+        Ok(())
     }
 
     async fn delete(&self, id: &Id) -> Result<()> {

@@ -1117,7 +1117,7 @@ dependencies = [
 [[package]]
 name = "ioc"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1134,7 +1134,7 @@ dependencies = [
 [[package]]
 name = "ioc_core"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "anyhow",
  "cfg-rs",
@@ -1145,7 +1145,7 @@ dependencies = [
 [[package]]
 name = "ioc_core_macro"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "darling",
  "ioc_core_scan",
@@ -1161,7 +1161,7 @@ dependencies = [
 [[package]]
 name = "ioc_core_scan"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1173,7 +1173,7 @@ dependencies = [
 [[package]]
 name = "ioc_macro"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "darling",
  "ioc_core_scan",
@@ -1188,7 +1188,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "cfg-rs",
  "ioc_core",
@@ -1196,6 +1196,7 @@ dependencies = [
  "ioc_mvc_macro",
  "poem",
  "poem-openapi",
+ "serde_json",
  "tokio",
  "tracing",
 ]
@@ -1203,7 +1204,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_macro"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "darling",
  "ioc_core_scan",
@@ -1215,7 +1216,7 @@ dependencies = [
 [[package]]
 name = "ioc_mvc_scan"
 version = "0.1.1"
-source = "git+https://github.com/lagudomeze/ioc.git#103a0de19b77f5cebb1f83fb284d4c79f85bf5b3"
+source = "git+https://github.com/lagudomeze/ioc.git#103cd5ac8889906216a003193d3065764a36c0b6"
 dependencies = [
  "darling",
  "ioc_core_scan",
@@ -1683,7 +1684,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "phi"
-version = "0.1.12"
+version = "0.1.13"
 dependencies = [
  "anyhow",
  "base64ct",

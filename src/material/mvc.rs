@@ -79,6 +79,11 @@ pub(crate) struct SearchCondition {
     pub(crate) r#type: Option<MaterialType>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Object)]
+pub(crate) struct MaterialPatchRequest {
+    pub(crate) name: String,
+}
+
 #[derive(Bean)]
 pub(crate) struct MaterialMvc {
     #[inject(bean)]
@@ -128,6 +133,12 @@ impl MaterialMvc {
             .detail(id.0, base_url, auth.into())
             .await?;
         Ok(Response::ok(detail))
+    }
+
+    #[oai(path = "/materials/:id", method = "patch")]
+    async fn update(&self, id: Path<Id>, auth: JwtAuth, request: Json<MaterialPatchRequest>) -> Result<Response<String>> {
+        self.materials_svc.update(id.0, auth.into(), request.0).await?;
+        Ok(Response::ok("ok".to_string()))
     }
 
     #[oai(path = "/materials/:id", method = "delete")]
