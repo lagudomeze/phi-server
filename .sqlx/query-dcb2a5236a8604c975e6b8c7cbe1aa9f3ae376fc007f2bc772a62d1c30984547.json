@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE materials SET name = ? WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "dcb2a5236a8604c975e6b8c7cbe1aa9f3ae376fc007f2bc772a62d1c30984547"
+}

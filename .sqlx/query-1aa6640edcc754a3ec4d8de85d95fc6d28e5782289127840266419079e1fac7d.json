@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO materials (id, name, raw_name, description, creator, state, type, created_at)\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "1aa6640edcc754a3ec4d8de85d95fc6d28e5782289127840266419079e1fac7d"
+}
