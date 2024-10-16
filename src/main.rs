@@ -17,7 +17,7 @@ mod util;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Enable debug mode
-    #[arg(short, long, default_value = "false")]
+    #[arg(short, long, default_value = "true")]
     debug: bool,
 
     /// Directory for configuration files. Configuration file should be named as {app-name}-profile.toml

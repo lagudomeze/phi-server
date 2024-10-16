@@ -1,13 +1,14 @@
+use crate::material::biz::MaterialImage;
 use crate::{
     auth::apikey::JwtAuth,
     common::{FormatedEvent, Page, PageResult, Response, Result},
     material::{
-        MaterialType,
         biz::{
             MaterialDetail,
-            MaterialsService
+            MaterialsService,
         },
-        storage::{Id, LocalStorage, Storage}
+        storage::{Id, LocalStorage, Storage},
+        MaterialType,
     },
     util::poem::BaseUrl,
 };
@@ -25,7 +26,6 @@ use std::ops::Deref;
 use tokio::{sync::mpsc::channel, task::spawn};
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::info;
-use crate::material::biz::MaterialImage;
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
@@ -77,6 +77,11 @@ pub(crate) struct SearchCondition {
     pub(crate) page: Page,
     pub(crate) query: Option<String>,
     pub(crate) r#type: Option<MaterialType>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Object)]
+pub(crate) struct BatchDeleteRequest {
+    pub(crate) ids: Vec<Id>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Object)]
@@ -144,6 +149,12 @@ impl MaterialMvc {
     #[oai(path = "/materials/:id", method = "delete")]
     async fn delete(&self, id: Path<Id>, auth: JwtAuth) -> Result<Response<String>> {
         self.materials_svc.delete(id.0, auth.into()).await?;
+        Ok(Response::ok("ok".to_string()))
+    }
+
+    #[oai(path = "/materials/batch_delete", method = "post")]
+    async fn batch_delete(&self, request: Json<BatchDeleteRequest>, auth: JwtAuth) -> Result<Response<String>> {
+        self.materials_svc.batch_delete(request.0.ids, auth.into()).await?;
         Ok(Response::ok("ok".to_string()))
     }
 

@@ -17,7 +17,7 @@ use chrono::{NaiveDateTime, Utc};
 use ioc::Bean;
 use poem_openapi::{Object, Union};
 use serde::{Deserialize, Serialize};
-use sqlx::{query_as_with, query_scalar_with, Arguments, SqlitePool};
+use sqlx::{query_as_with, query_scalar_with, Arguments, QueryBuilder, SqlitePool};
 use std::{borrow::Cow, ops::Deref};
 use tokio::{sync::mpsc::Sender, task::spawn_blocking};
 use tracing::{debug, info, warn};
@@ -307,7 +307,6 @@ impl MaterialsService {
                 }
             }?;
             details.push(detail);
-
         }
 
         Ok(details)
@@ -404,6 +403,16 @@ impl MaterialsService {
         self.storage.delete(&id).await?;
 
         self.repo.delete(&id).await?;
+        Ok(())
+    }
+
+    pub(crate) async fn batch_delete(&self, ids: Vec<Id>, _claims: Claims) -> Result<()> {
+        for id in ids.iter() {
+            if self.storage.exists(id).await? {
+                self.storage.delete(id).await?;
+            }
+        }
+        self.repo.delete_by_ids(&ids).await?;
         Ok(())
     }
 }
@@ -504,7 +513,7 @@ impl MaterialsRepo {
             sql_count_args.add(format!("%{query}%"))?;
         }
 
-        if let  Some(ref material_type) = condition.r#type{
+        if let Some(ref material_type) = condition.r#type {
             sql_where.push_str(" AND type = ?");
             sql_select_args.add(material_type.value())?;
             sql_count_args.add(material_type.value())?;
@@ -625,6 +634,30 @@ impl MaterialsRepo {
             "#,
             id_str
         )
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
+    async fn delete_by_ids(&self, ids: &[Id]) -> Result<()> {
+        let mut tx = self.db.begin().await?;
+
+        QueryBuilder::new("DELETE FROM materials WHERE id IN")
+            .push_tuples(ids.iter(), |mut b, id| {
+                b.push_bind(id.deref());
+            })
+            .build()
+            .execute(&mut *tx)
+            .await?;
+
+        QueryBuilder::new("DELETE FROM material_tags WHERE material_id IN")
+            .push_tuples(ids.iter(), |mut b, id| {
+                b.push_bind(id.deref());
+            })
+            .build()
             .execute(&mut *tx)
             .await?;
 
