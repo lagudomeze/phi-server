@@ -16,6 +16,7 @@ use tokio::{
     fs::{remove_file, try_exists, File as TokioFile},
     io::AsyncRead,
 };
+use tokio::fs::remove_dir_all;
 use tracing::{error, warn};
 use url::Url;
 use uuid::Uuid;
@@ -132,7 +133,11 @@ impl Storage for LocalStorage {
     async fn delete(&self, id: &Id) -> Result<()> {
         let path = self.path(id);
         if try_exists(&path).await? {
-            Ok(remove_file(&path).await?)
+            if path.is_dir() {
+                Ok(remove_dir_all(&path).await?)
+            } else {
+                Ok(remove_file(&path).await?)
+            }
         } else {
             warn!("file {} is not exist! skip delete op!", path.display());
             Ok(())
