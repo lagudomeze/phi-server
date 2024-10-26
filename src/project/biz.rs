@@ -189,6 +189,7 @@ impl ProjectsRepo {
         Ok(())
     }
     pub(crate) async fn update_single_page(&self, project_id: &str, id: &str, page: &PageBo) -> crate::common::Result<()> {
+
         sqlx::query!(
             r#"
             UPDATE project_pages
