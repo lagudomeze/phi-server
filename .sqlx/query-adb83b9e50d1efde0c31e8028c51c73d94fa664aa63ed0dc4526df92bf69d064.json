@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE projects\n            SET\n                repo_url = ? ,\n                repo_branch = ? ,\n                public_dir = ? ,\n                store_dir = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "adb83b9e50d1efde0c31e8028c51c73d94fa664aa63ed0dc4526df92bf69d064"
+}

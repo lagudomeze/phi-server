@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Tags)]
 pub(crate) enum PhiTags {
-    Auth,
+    Auth, Material, Project
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Object)]

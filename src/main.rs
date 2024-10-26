@@ -12,6 +12,7 @@ mod ffmpeg;
 mod log;
 mod material;
 mod util;
+mod project;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

@@ -26,6 +26,7 @@ use std::ops::Deref;
 use tokio::{sync::mpsc::channel, task::spawn};
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::info;
+use crate::common::PhiTags;
 
 #[derive(NewType, Debug)]
 #[oai(to_header = false, from_multipart = false)]
@@ -98,7 +99,7 @@ pub(crate) struct MaterialMvc {
 }
 
 #[mvc]
-#[OpenApi(prefix_path = "/api/v1")]
+#[OpenApi(prefix_path = "/api/v1", tag = PhiTags::Material)]
 impl MaterialMvc {
     #[oai(path = "/materials:search", method = "post")]
     async fn search(
