@@ -58,6 +58,7 @@ pub(crate) struct NewProjectAndPages {
 #[mvc]
 #[OpenApi(prefix_path = "/api/v1", tag = PhiTags::Project )]
 impl ProjectMvc {
+    /// 搜索projects 目前只有分页参数有效 query无效
     #[oai(path = "/projects/search", method = "post")]
     async fn search(&self, condition: Json<ProjectSearchCondition>, auth: JwtAuth) -> Result<Response<PageResult<Project>>> {
         info!("{:?}", condition);
@@ -70,6 +71,8 @@ impl ProjectMvc {
 
         Ok(Response::ok(result))
     }
+
+    /// 列举指定的project下面的pages
     #[oai(path = "/projects/:project_id/pages", method = "get")]
     async fn list_pages(&self, project_id: Path<String>, auth: JwtAuth) -> Result<Response<Vec<ProjectPage>>> {
         let _auth: Claims = auth.into();
@@ -81,6 +84,8 @@ impl ProjectMvc {
 
         Ok(Response::ok(result))
     }
+
+    /// 新建project, 此时允许附带pages, 可以为空
     #[oai(path = "/projects", method = "post")]
     async fn new_project(
         &self,
@@ -96,6 +101,9 @@ impl ProjectMvc {
 
         Ok(Response::ok(result))
     }
+
+
+    /// 给指定的project追加pages
     #[oai(path = "/projects/:project_id/pages", method = "post")]
     async fn new_pages(
         &self,
@@ -112,25 +120,28 @@ impl ProjectMvc {
         Ok(Response::ok("ok".to_string()))
     }
 
-    #[oai(path = "/projects/:project_id", method = "put")]
+    /// 修改projects自身的配置，不包含pages
+    #[oai(path = "/projects/:id", method = "put")]
     async fn update_project(
         &self,
-        project_id: Path<String>,
+        id: Path<String>,
         request: Json<ProjectBo>,
         auth: JwtAuth,
     ) -> Result<Response<String>> {
         let _auth: Claims = auth.into();
 
         self.repo
-            .update_project(&project_id, &request.0)
+            .update_project(&id, &request.0)
             .await?;
 
         Ok(Response::ok("ok".to_string()))
     }
 
-    #[oai(path = "/projects/pages/:id", method = "put")]
+    /// 修改单个page的配置
+    #[oai(path = "/projects/:project_id/pages/:id", method = "put")]
     async fn update_single_page(
         &self,
+        project_id: Path<String>,
         id: Path<String>,
         request: Json<PageBo>,
         auth: JwtAuth,
@@ -138,17 +149,20 @@ impl ProjectMvc {
         let _auth: Claims = auth.into();
 
         self.repo
-            .update_single_page(&id, &request.0)
+            .update_single_page(&project_id, &id, &request.0)
             .await?;
 
         Ok(Response::ok(id.0))
     }
+
+    /// 删除project，关联的page也会删除
     #[oai(path = "/projects/:id", method = "delete")]
     async fn delete_project(&self, id: Path<String>, _auth: JwtAuth) -> Result<Response<String>> {
         self.repo.delete_project(&id).await?;
         Ok(Response::ok("ok".to_string()))
     }
 
+    /// 删除指定的pages
     #[oai(path = "/projects/pages/batch_delete", method = "post")]
     async fn batch_delete(&self, request: Json<PageBatchDeleteRequest>, _auth: JwtAuth) -> Result<Response<String>> {
         self.repo.delete_pages(request.ids.as_ref()).await?;

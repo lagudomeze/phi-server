@@ -188,7 +188,7 @@ impl ProjectsRepo {
 
         Ok(())
     }
-    pub(crate) async fn update_single_page(&self, id: &str, page: &PageBo) -> crate::common::Result<()> {
+    pub(crate) async fn update_single_page(&self, project_id: &str, id: &str, page: &PageBo) -> crate::common::Result<()> {
         sqlx::query!(
             r#"
             UPDATE project_pages
@@ -197,13 +197,14 @@ impl ProjectsRepo {
                 category = ? ,
                 content_type = ? ,
                 content = ?
-            WHERE id = ?
+            WHERE id = ? AND project_id = ?
             "#,
             page.name,
             page.category,
             page.content_type,
             page.content,
-            id
+            id,
+            project_id
         ).execute(self.db).await?;
 
         Ok(())

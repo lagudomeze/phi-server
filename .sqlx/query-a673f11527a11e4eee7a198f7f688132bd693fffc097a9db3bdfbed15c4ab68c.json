@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE project_pages\n            SET\n                name = ? ,\n                category = ? ,\n                content_type = ? ,\n                content = ?\n            WHERE id = ? AND project_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "a673f11527a11e4eee7a198f7f688132bd693fffc097a9db3bdfbed15c4ab68c"
+}
