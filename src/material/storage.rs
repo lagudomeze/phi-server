@@ -165,7 +165,7 @@ impl Storage for LocalStorage {
     }
 
     async fn save(&self, id: &Id, source: impl AsyncRead + Unpin) -> Result<SavedId> {
-        let mut target = self.path(&id);
+        let mut target = self.path(id);
         target.push("raw");
 
         if try_exists(&target).await? {

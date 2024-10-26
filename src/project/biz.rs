@@ -98,7 +98,7 @@ impl ProjectsRepo {
     pub(crate) async fn list_pages(&self, project_id: &str) -> crate::common::Result<Vec<ProjectPage>> {
         let records = sqlx::query_as("SELECT project_id, id, name, category, content_type, content, creator, created_at FROM project_pages WHERE project_id = ?")
             .bind(project_id)
-            .fetch_all(&*self.db)
+            .fetch_all(self.db)
             .await?;
 
         Ok(records)
@@ -140,10 +140,10 @@ impl ProjectsRepo {
 
         Ok(project_id)
     }
-    pub(crate) async fn new_pages(&self, project_id: &str, pages: &Vec<PageBo>, creator: &str) -> crate::common::Result<()> {
-        ProjectsRepo::raw_new_page(&*self.db, project_id, pages, creator).await
+    pub(crate) async fn new_pages(&self, project_id: &str, pages: &[PageBo], creator: &str) -> crate::common::Result<()> {
+        ProjectsRepo::raw_new_page(self.db, project_id, pages, creator).await
     }
-    async fn raw_new_page<'a, E: Executor<'a, Database=Sqlite>>(db: E, project_id: &str, pages: &Vec<PageBo>, creator: &str) -> crate::common::Result<()> {
+    async fn raw_new_page<'a, E: Executor<'a, Database=Sqlite>>(db: E, project_id: &str, pages: &[PageBo], creator: &str) -> crate::common::Result<()> {
         let created_at = Utc::now().naive_utc();
 
         if pages.is_empty() {
@@ -159,7 +159,7 @@ impl ProjectsRepo {
                     b.push_bind(&page.content_type);
                     b.push_bind(&page.content);
                     b.push_bind(creator);
-                    b.push_bind(&created_at);
+                    b.push_bind(created_at);
                 })
                 .build()
                 .execute(db)
