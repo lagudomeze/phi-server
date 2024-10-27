@@ -57,6 +57,8 @@ pub(crate) enum AppError {
     Other(#[from] anyhow::Error),
     #[error("`{0}`")]
     DbError(String),
+    #[error("deploy project error: `{0}`")]
+    DeployError(String),
 }
 
 impl From<poem::Error> for AppError {

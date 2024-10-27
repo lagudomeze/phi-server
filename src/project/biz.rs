@@ -1,5 +1,5 @@
 use crate::{
-    common::{AppError, PageResult},
+    common::{AppError, PageResult, Result},
     db::Db,
     project::{
         mvc::ProjectSearchCondition,
@@ -61,7 +61,7 @@ pub(crate) struct ProjectBo {
     store_dir: String,
 }
 impl ProjectsRepo {
-    pub(crate) async fn search(&self, condition: &ProjectSearchCondition, creator: impl AsRef<str>) -> crate::common::Result<PageResult<Project>> {
+    pub(crate) async fn search(&self, condition: &ProjectSearchCondition, creator: impl AsRef<str>) -> Result<PageResult<Project>> {
         let mut sql_select_args = sqlx::sqlite::SqliteArguments::default();
         let mut sql_count_args = sqlx::sqlite::SqliteArguments::default();
 
@@ -95,6 +95,16 @@ impl ProjectsRepo {
 
         Ok(PageResult::new(&condition.page, total, records))
     }
+
+    pub(crate) async fn find_by_id(&self, project_id: &str) -> Result<Option<Project>> {
+        let maybe: Option<Project> = sqlx::query_as("SELECT id, repo_url, repo_branch, public_dir, store_dir, creator, created_at FROM projects WHERE id = ?")
+            .bind(project_id)
+            .fetch_optional(self.db)
+            .await?;
+
+        Ok(maybe)
+    }
+
     pub(crate) async fn list_pages(&self, project_id: &str) -> crate::common::Result<Vec<ProjectPage>> {
         let records = sqlx::query_as("SELECT project_id, id, name, category, content_type, content, creator, created_at FROM project_pages WHERE project_id = ?")
             .bind(project_id)

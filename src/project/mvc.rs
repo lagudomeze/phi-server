@@ -26,6 +26,7 @@ use poem_openapi::{
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use crate::common::PhiTags;
+use crate::project::deploy::{DeployProject, DeployService};
 
 #[derive(Debug, Deserialize, Serialize, Object)]
 pub(crate) struct ProjectSearchCondition {
@@ -40,6 +41,8 @@ pub(crate) struct ProjectSearchCondition {
 pub(crate) struct ProjectMvc {
     #[inject(bean)]
     repo: &'static ProjectsRepo,
+    #[inject(bean)]
+    deploy: &'static DeployService,
 }
 
 #[derive(Debug, Deserialize, Serialize, Object)]
@@ -80,6 +83,18 @@ impl ProjectMvc {
         let result = self
             .repo
             .list_pages(&project_id)
+            .await?;
+
+        Ok(Response::ok(result))
+    }
+
+    /// 部署指定的project下面的pages
+    #[oai(path = "/projects/:project_id/deploy", method = "post")]
+    async fn deploy(&self, project_id: Path<String>, auth: JwtAuth) -> Result<Response<String>> {
+        let _auth: Claims = auth.into();
+
+        let result = self
+            .deploy.deploy(&project_id)
             .await?;
 
         Ok(Response::ok(result))
@@ -168,4 +183,19 @@ impl ProjectMvc {
         self.repo.delete_pages(request.ids.as_ref()).await?;
         Ok(Response::ok("ok".to_string()))
     }
+}
+
+#[derive(Bean)]
+pub(crate) struct DeployTest;
+
+#[mvc]
+#[OpenApi]
+impl DeployTest {
+    /// mock的部署测试url
+    #[oai(path = "/deploy/test", method = "post")]
+    async fn test(&self, request: Json<DeployProject>) -> Result<Response<DeployProject>> {
+        info!("{:?}", request);
+        Ok(Response::ok(request.0))
+    }
+
 }

@@ -42,3 +42,7 @@ pass = "goodluckxixi"
 [jwt]
 document-path = "keys/secret.pem"
 expire-seconds = 7200
+
+[project]
+deploy-url = "http://localhost:8081/deploy/test"
+timeout = "120s"
